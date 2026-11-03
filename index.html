@@ -134,6 +134,7 @@
     <div id="mapWrap" class="mapwrap">
       <small>Ghép cột Excel vào tem</small>
       <div id="map"></div>
+      <button id="addField" title="Thêm 1 trường chữ mới lên tem, lấy từ 1 cột Excel">+ Thêm trường</button>
     </div>
     <div id="warn" class="warn" hidden></div>
     <label>Số tem mỗi dòng<input id="copies" type="number" min="1"></label>
@@ -563,7 +564,7 @@ function checkCols() {
       Object.assign(document.createElement('small'), { textContent: kinds }), sl);
     return l;
   }));
-  $('mapWrap').hidden = !ks.length;
+  $('map').hidden = !ks.length;
   const miss = ks.filter(k => !colFor(k));
   $('warn').hidden = !miss.length;
   $('warn').textContent = `⚠ Chưa chọn cột Excel cho: ${miss.join(', ')}. Tem sẽ trống chỗ đó.`;
@@ -650,6 +651,10 @@ async function loadFile(f) {
 }
 $('file').onchange = () => loadFile($('file').files[0]);
 $('sampleBtn').onclick = downloadSample;
+$('addField').onclick = () => {
+  const n = prompt('Tên trường (= tên cột Excel), ví dụ: Giá, Serial, Ghi chú')?.replace(/[{}]/g, '').trim();
+  if (n) add({ type: 'text', text: `{${n}}`, x: S.safe, y: S.safe, w: dims()[0] - 2 * S.safe, size: 8, bold: false, align: 'left' });
+};
 // Kéo thả file vào bất kỳ đâu trên trang
 addEventListener('dragover', ev => { ev.preventDefault(); $('drop').classList.add('over'); });
 addEventListener('dragleave', ev => { if (!ev.relatedTarget) $('drop').classList.remove('over'); });
