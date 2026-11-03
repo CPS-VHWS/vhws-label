@@ -61,6 +61,16 @@
     border-radius: var(--radius); line-height: 1.6; font-size: 14px; }
   @media (max-width: 800px) { .guide { margin: 16px; padding: 16px; } }
   .guide .muted { color: var(--muted); margin: 0; }
+  .gridwrap { overflow: auto; max-height: 260px; border: 1px solid var(--border); border-radius: 8px; }
+  .gridwrap:has(#grid:empty) { display: none; }
+  #grid { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+  #grid th { position: sticky; top: 0; background: var(--bg3); text-align: left; font-weight: 600; padding: 6px 8px; white-space: nowrap; }
+  #grid td, #grid th { border: 1px solid var(--border); }
+  #grid td:first-child, #grid th:first-child { color: var(--muted); text-align: center; padding: 0 6px; width: 1%; }
+  #grid input { min-height: 30px; width: 9em; border: 0; border-radius: 0; padding: 4px 8px; background: transparent; font-size: 12.5px; }
+  #grid input:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+  .rawcsv summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
+  .rawcsv textarea { margin-top: 6px; width: 100%; }
   .guide table { border-collapse: collapse; width: 100%; }
   .guide td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
   .guide td:first-child { font-weight: 700; white-space: nowrap; width: 1%; }
@@ -140,7 +150,11 @@
       <input id="file" type="file" accept=".csv,.txt,.xlsx,.xls" hidden>
       Kéo thả file <b>Excel / CSV</b> vào đây<br>hoặc bấm để chọn file
     </label>
-    <textarea id="csv" spellcheck="false" placeholder="…hoặc dán thẳng từ Excel (dòng đầu là tên cột)"></textarea>
+    <div class="gridwrap"><table id="grid"></table></div>
+    <div class="btns"><button id="addRow">+ Thêm dòng</button><small class="muted" style="align-self:center">Bấm vào ô để sửa · dán nhiều ô từ Excel được</small></div>
+    <details class="rawcsv"><summary>Dán cả bảng từ Excel (dạng chữ)</summary>
+      <textarea id="csv" spellcheck="false" placeholder="Dán thẳng từ Excel, dòng đầu là tên cột"></textarea>
+    </details>
     <button id="sampleBtn" title="File Excel có sẵn đúng các cột mẫu đang dùng">⬇ Tải file Excel mẫu</button>
     <div id="mapWrap" class="mapwrap">
       <small>Ghép cột Excel vào tem</small>
@@ -569,13 +583,35 @@ function add(e) {
   drawProps(); drawEditor(); save();
 }
 
-function loadData() {
+function loadData(keepGrid) {
   const a = parseCSV(S.csv);
   cols = (a[0] || []).map(s => s.trim());
   rows = a.slice(1).map(r => Object.fromEntries(cols.map((c, i) => [c, (r[i] ?? '').trim()])));
   pv = Math.min(pv, Math.max(0, rows.length - 1));
   $('pv').max = rows.length; $('pv').value = pv + 1; $('pvn').textContent = '/ ' + rows.length;
   updInfo();
+  if (!keepGrid) drawGrid();
+}
+
+// Bảng dữ liệu: sửa từng ô, ghi ngược lại S.csv (dạng tab như copy từ Excel)
+const toTSV = a => a.map(r => r.map(v => /[\t"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v).join('\t')).join('\n');
+function drawGrid() {
+  const t = $('grid'); t.replaceChildren();
+  if (!cols.length) return;
+  const hr = t.createTHead().insertRow();
+  for (const c of ['#', ...cols]) hr.append(Object.assign(document.createElement('th'), { textContent: c }));
+  const tb = t.createTBody();
+  rows.forEach((r, i) => {
+    const tr = tb.insertRow(); tr.insertCell().textContent = i + 1;
+    cols.forEach((c, j) => {
+      const inp = Object.assign(document.createElement('input'), { value: r[c], spellcheck: false });
+      Object.assign(inp.dataset, { i, j }); tr.insertCell().append(inp);
+    });
+  });
+}
+function gridSave(redraw) {
+  S.csv = $('csv').value = toTSV([cols, ...rows.map(r => cols.map(c => r[c] ?? ''))]);
+  loadData(!redraw); drawEditor(); save();
 }
 
 function updInfo() {
@@ -594,10 +630,10 @@ const colFor = k => cols.includes(S.map?.[k]) ? S.map[k] : cols.find(c => norm(c
 // Thêm 1 cột trống vào dữ liệu đang có (dữ liệu chuyển sang dạng tab, như dán từ Excel)
 function addCol(n) {
   if (cols.some(c => norm(c) === norm(n))) return;
-  const a = parseCSV(S.csv).filter(r => r.join('').trim());
+  const a = parseCSV(S.csv);
   if (!a.length) a.push([]);
   a[0].push(n); a.slice(1).forEach(r => r.push(''));
-  S.csv = $('csv').value = a.map(r => r.map(v => /[\t"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v).join('\t')).join('\n');
+  S.csv = $('csv').value = toTSV(a);
   loadData();
 }
 
@@ -729,6 +765,24 @@ async function loadFile(f) {
   } else $('csv').value = await f.text();
   $('csv').oninput(); $('file').value = '';
 }
+$('grid').oninput = ev => { const { i, j } = ev.target.dataset; rows[i][cols[j]] = ev.target.value; gridSave(); };
+// Dán nhiều ô từ Excel vào 1 ô: trải ra từ ô đó, thiếu dòng thì thêm dòng
+$('grid').onpaste = ev => {
+  const t = ev.clipboardData.getData('text').replace(/\r?\n$/, '');
+  if (!/[\t\n]/.test(t) || !ev.target.dataset.i) return;
+  ev.preventDefault();
+  const i = +ev.target.dataset.i, j = +ev.target.dataset.j;
+  parseCSV(t).forEach((pr, a) => {
+    const r = rows[i + a] ??= Object.fromEntries(cols.map(c => [c, '']));
+    pr.forEach((v, b) => { if (cols[j + b]) r[cols[j + b]] = v.trim(); });
+  });
+  gridSave(true);
+};
+$('addRow').onclick = () => {
+  if (!cols.length) return alert('Chưa có cột nào: nhập file Excel hoặc thêm trường trước.');
+  rows.push(Object.fromEntries(cols.map(c => [c, '']))); drawGrid(); // dòng trống chỉ lưu khi gõ vào
+  $('grid').querySelector('tbody tr:last-child input')?.focus();
+};
 $('file').onchange = () => loadFile($('file').files[0]);
 $('sampleBtn').onclick = downloadSample;
 $('prnSel').onchange = () => {

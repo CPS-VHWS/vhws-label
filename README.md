@@ -43,6 +43,7 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 - 03/11/2026 · Đổi loại phần tử (Chữ / QR / Mã vạch / Khung) ở khung bên phải; chip chèn trường gồm cả trường của mẫu
 - 03/11/2026 · Hướng dẫn hộp thoại in: phải chọn máy TSC, không chọn máy A4
 - 03/11/2026 · + Thêm trường tự thêm cột vào dữ liệu đang nhập; trường chưa có cột thì chọn "+ Thêm cột … vào dữ liệu"
+- 03/11/2026 · Dữ liệu hiện dạng bảng: sửa từng ô, + Thêm dòng, dán nhiều ô từ Excel; ô chữ thô chuyển vào mục "Dán cả bảng"
 
 ## Chưa làm
 
