@@ -591,14 +591,29 @@ const norm = v => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ
 const need = () => [...new Set(S.els.flatMap(e => [...e.text.matchAll(/\{([^}]+)\}/g)].map(m => m[1].trim())))];
 const colFor = k => cols.includes(S.map?.[k]) ? S.map[k] : cols.find(c => norm(c) === norm(k)) ?? '';
 
+// Thêm 1 cột trống vào dữ liệu đang có (dữ liệu chuyển sang dạng tab, như dán từ Excel)
+function addCol(n) {
+  if (cols.some(c => norm(c) === norm(n))) return;
+  const a = parseCSV(S.csv).filter(r => r.join('').trim());
+  if (!a.length) a.push([]);
+  a[0].push(n); a.slice(1).forEach(r => r.push(''));
+  S.csv = $('csv').value = a.map(r => r.map(v => /[\t"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v).join('\t')).join('\n');
+  loadData();
+}
+
 function checkCols() {
   const ks = need();
   $('map').replaceChildren(...ks.map(k => {
     const sl = document.createElement('select');
     sl.add(new Option('— chọn cột Excel —', ''));
     cols.forEach(c => sl.add(new Option(c, c)));
+    if (!colFor(k)) sl.add(new Option(`+ Thêm cột "${k}" vào dữ liệu`, '\0new'));
     sl.value = colFor(k);
-    sl.onchange = () => { (S.map ||= {})[k] = sl.value; drawEditor(); save(); };
+    sl.onchange = () => {
+      if (sl.value === '\0new') { addCol(k); if (S.map) delete S.map[k]; }
+      else (S.map ||= {})[k] = sl.value;
+      drawEditor(); save();
+    };
     const kinds = [...new Set(S.els.filter(e => e.text.includes(`{${k}}`)).map(e => NAMES[e.type]))].join(', ');
     const l = document.createElement('label'); l.className = 'maprow';
     l.append(Object.assign(document.createElement('span'), { textContent: k, title: 'Dùng cho: ' + kinds }),
@@ -737,7 +752,7 @@ $('prnDel').onclick = () => {
 };
 $('addField').onclick = () => {
   const n = prompt('Tên trường (= tên cột Excel), ví dụ: Giá, Serial, Ghi chú')?.replace(/[{}]/g, '').trim();
-  if (n) add({ type: 'text', text: `{${n}}`, x: S.safe, y: S.safe, w: dims()[0] - 2 * S.safe, size: 8, bold: false, align: 'left' });
+  if (n) addCol(n), add({ type: 'text', text: `{${n}}`, x: S.safe, y: S.safe, w: dims()[0] - 2 * S.safe, size: 8, bold: false, align: 'left' });
 };
 // Kéo thả file vào bất kỳ đâu trên trang
 addEventListener('dragover', ev => { ev.preventDefault(); $('drop').classList.add('over'); });
