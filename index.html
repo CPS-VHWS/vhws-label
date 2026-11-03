@@ -53,6 +53,12 @@
     background: var(--accent); color: var(--on-accent); }
   .drop { display: block; border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; line-height: 1.5; }
   .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); }
+  .mapwrap { display: grid; gap: 6px; }
+  #map { display: grid; gap: 6px; }
+  .maprow { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; }
+  .maprow span { color: var(--text); font-weight: 700; }
+  .maprow small { text-align: right; }
+  .maprow select { grid-column: 1 / -1; }
   .warn { font-size: 12.5px; color: #b45309; background: color-mix(in srgb, #f59e0b 14%, transparent); border-radius: 8px; padding: 8px 10px; }
   details { border-top: 1px solid var(--border); padding-top: 10px; }
   summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
@@ -102,6 +108,11 @@
       Kéo thả file <b>Excel / CSV</b> vào đây<br>hoặc bấm để chọn file
     </label>
     <textarea id="csv" spellcheck="false" placeholder="…hoặc dán thẳng từ Excel (dòng đầu là tên cột)"></textarea>
+    <button id="sampleBtn" title="File Excel có sẵn đúng các cột mẫu đang dùng">⬇ Tải file Excel mẫu</button>
+    <div id="mapWrap" class="mapwrap">
+      <small>Ghép cột Excel vào tem</small>
+      <div id="map"></div>
+    </div>
     <div id="warn" class="warn" hidden></div>
     <label>Số tem mỗi dòng<input id="copies" type="number" min="1"></label>
 
@@ -235,7 +246,7 @@ function fillTpls(v) {
 }
 const dims = () => S.rot ? [S.h, S.w] : [S.w, S.h]; // khổ thiết kế (xoay thì đổi chiều)
 const snap = v => Math.round(v * 2) / 2;
-const fill = (t, row) => t.replace(/\{([^}]+)\}/g, (_, k) => row[k.trim()] ?? '');
+const fill = (t, row) => t.replace(/\{([^}]+)\}/g, (_, k) => row[colFor(k.trim())] ?? '');
 const qty = () => Math.max(1, S.copies || 1);
 
 // CSV/TSV: tự đoán dấu phân cách (, ; tab), hỗ trợ "ngoặc kép", bỏ BOM
@@ -432,15 +443,42 @@ function updInfo() {
 
 // Mỗi trang in = 1 hàng tem trên cuộn (cuộn 2 tem ngang → 2 tem/trang)
 // Cảnh báo khi mẫu dùng {cột} mà dữ liệu không có
+// Ghép cột: mỗi {chỗ trống} trong mẫu lấy từ 1 cột Excel. Tự khớp theo tên (bỏ dấu, hoa/thường), không khớp thì user chọn.
+const norm = v => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/\s+/g, '');
+const need = () => [...new Set(S.els.flatMap(e => [...e.text.matchAll(/\{([^}]+)\}/g)].map(m => m[1].trim())))];
+const colFor = k => cols.includes(S.map?.[k]) ? S.map[k] : cols.find(c => norm(c) === norm(k)) ?? '';
+
 function checkCols() {
-  const need = [...new Set(S.els.flatMap(e => [...e.text.matchAll(/\{([^}]+)\}/g)].map(m => m[1].trim())))];
-  const miss = need.filter(c => !cols.includes(c));
+  const ks = need();
+  $('map').replaceChildren(...ks.map(k => {
+    const sl = document.createElement('select');
+    sl.add(new Option('— chọn cột Excel —', ''));
+    cols.forEach(c => sl.add(new Option(c, c)));
+    sl.value = colFor(k);
+    sl.onchange = () => { (S.map ||= {})[k] = sl.value; drawEditor(); save(); };
+    const kinds = [...new Set(S.els.filter(e => e.text.includes(`{${k}}`)).map(e => NAMES[e.type]))].join(', ');
+    const l = document.createElement('label'); l.className = 'maprow';
+    l.append(Object.assign(document.createElement('span'), { textContent: k, title: 'Dùng cho: ' + kinds }),
+      Object.assign(document.createElement('small'), { textContent: kinds }), sl);
+    return l;
+  }));
+  $('mapWrap').hidden = !ks.length;
+  const miss = ks.filter(k => !colFor(k));
   $('warn').hidden = !miss.length;
-  $('warn').textContent = `⚠ Mẫu cần cột ${miss.map(c => `"${c}"`).join(', ')} nhưng dữ liệu không có. Đổi tên cột trong file cho khớp, hoặc sửa nội dung phần tử.`;
+  $('warn').textContent = `⚠ Chưa chọn cột Excel cho: ${miss.join(', ')}. Tem sẽ trống chỗ đó.`;
+}
+
+// File Excel mẫu: đúng các cột mẫu đang dùng, kèm tối đa 2 dòng dữ liệu hiện có
+function downloadSample() {
+  const ks = need();
+  const body = rows.length ? rows.slice(0, 2).map(r => ks.map(k => r[colFor(k)] ?? '')) : [ks.map(() => '')];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([ks, ...body]), 'Tem');
+  XLSX.writeFile(wb, 'mau-du-lieu-tem.xlsx');
 }
 
 function doPrint(test) {
-  if (!$('warn').hidden && !confirm('Dữ liệu đang thiếu cột mẫu cần, tem sẽ bị trống chỗ đó. Vẫn in?')) return;
+  if (!$('warn').hidden && !confirm('Còn chỗ chưa ghép cột Excel, tem sẽ bị trống chỗ đó. Vẫn in?')) return;
   const all = [], n = Math.max(1, S.cols | 0), p = $('print');
   for (const r of rows.length ? rows : [{}]) for (let i = 0; i < qty(r) && !(test && all.length >= n); i++) all.push(renderLabel(r, false));
   p.replaceChildren();
@@ -509,6 +547,7 @@ async function loadFile(f) {
   $('csv').oninput(); $('file').value = '';
 }
 $('file').onchange = () => loadFile($('file').files[0]);
+$('sampleBtn').onclick = downloadSample;
 // Kéo thả file vào bất kỳ đâu trên trang
 addEventListener('dragover', ev => { ev.preventDefault(); $('drop').classList.add('over'); });
 addEventListener('dragleave', ev => { if (!ev.relatedTarget) $('drop').classList.remove('over'); });
