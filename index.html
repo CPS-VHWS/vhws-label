@@ -110,7 +110,10 @@
       <label>Số bản / dòng<input id="copies" type="number" min="1"></label>
     </div>
     <div id="info"></div>
-    <button class="pri" id="printBtn">In tem</button>
+    <div class="row" style="grid-template-columns:auto 1fr">
+      <button id="testBtn" title="In 1 hàng đầu tiên để căn chỉnh">In thử 1 hàng</button>
+      <button class="pri" id="printBtn">In tem</button>
+    </div>
     <small>Chrome: Lề = Không, Tỉ lệ = 100%. Driver TSC: khổ giấy = khổ tem.</small>
   </div>
 
@@ -390,9 +393,9 @@ function updInfo() {
 }
 
 // Mỗi trang in = 1 hàng tem trên cuộn (cuộn 2 tem ngang → 2 tem/trang)
-function doPrint() {
+function doPrint(test) {
   const all = [], n = Math.max(1, S.cols | 0), p = $('print');
-  for (const r of rows.length ? rows : [{}]) for (let i = 0; i < qty(r); i++) all.push(renderLabel(r, false));
+  for (const r of rows.length ? rows : [{}]) for (let i = 0; i < qty(r) && !(test && all.length >= n); i++) all.push(renderLabel(r, false));
   p.replaceChildren();
   for (let i = 0; i < all.length; i += n) {
     const pg = document.createElement('div'); pg.className = 'pg';
@@ -460,7 +463,8 @@ $('file').onchange = async () => {
 $('qtyCol').onchange = () => { S.qtyCol = $('qtyCol').value; updInfo(); save(); };
 $('copies').oninput = () => { S.copies = +$('copies').value || 1; updInfo(); save(); };
 $('pv').oninput = () => { pv = Math.max(0, Math.min(rows.length - 1, +$('pv').value - 1)); drawEditor(); };
-$('printBtn').onclick = doPrint;
+$('printBtn').onclick = () => doPrint();
+$('testBtn').onclick = () => doPrint(true);
 addEventListener('resize', drawEditor);
 addEventListener('keydown', ev => {
   if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
