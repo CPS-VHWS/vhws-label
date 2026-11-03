@@ -179,10 +179,17 @@ const TEMPLATES = {
     { type: 'text', text: '{Mã}', x: 2, y: 28, w: 26, size: 6.5, bold: false, align: 'center' },
     { type: 'text', text: '{Tên}', x: 2, y: 32.5, w: 26, size: 8, bold: true, align: 'center' },
   ] },
+  // QR lấy nội dung từ cột QR (link…, không in ra chữ); 2 cặp QR + mã quay ngược nhau (xoay 180° quanh tâm tem) để đọc được từ cả hai cạnh
+  'Mẫu 3 · 2 QR đối xứng': { rot: 0, els: [
+    { type: 'text', text: '{Mã}', x: -0.6, y: 8.6, w: 15.2, size: 5.5, bold: true, align: 'center', r: 90 },
+    { type: 'qr', text: '{QR}', x: 2, y: 18, w: 10, r: 90 },
+    { type: 'qr', text: '{QR}', x: 28, y: 2, w: 10, r: 270 },
+    { type: 'text', text: '{Mã}', x: 25.4, y: 19.15, w: 15.2, size: 5.5, bold: true, align: 'center', r: 270 },
+  ] },
 };
 const DEF = {
   w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, copies: 1,
-  csv: 'Mã,Tên\n072_S10L_00JRMV,Tab S10 Lite\n040_S10L_00JW8E,Tab S10 Lite',
+  csv: 'Mã,Tên,QR\n072_S10L_00JRMV,Tab S10 Lite,https://example.com/072_S10L_00JRMV\n040_S10L_00JW8E,Tab S10 Lite,https://example.com/040_S10L_00JW8E',
   ...structuredClone(TEMPLATES['Mẫu 1 · QR + Note']),
 };
 
