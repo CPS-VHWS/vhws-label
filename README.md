@@ -38,6 +38,10 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 - 03/11/2026 · Nút + Thêm trường (tự có cột trong file Excel mẫu)
 - 03/11/2026 · Icon tab mới: ô vuông 2 hàng VHWS / IN TEM
 - 03/11/2026 · Chuyển repo sang CPS-VHWS/vhws-label (link cũ minhthanhbrvt95-web.github.io/tsc-label đã ngừng)
+- 03/11/2026 · Cấu hình máy in / loại tem: mặc định TSC TE300 · 40×30 · 2 tem/hàng, lưu thêm cấu hình khác (★), cảnh báo đổi máy/đổi tem
+- 03/11/2026 · Nút In / In thử lên thanh trên cùng; Xem trước bản in (cuộn tem thật) dưới khung thiết kế
+- 03/11/2026 · Đổi loại phần tử (Chữ / QR / Mã vạch / Khung) ở khung bên phải; chip chèn trường gồm cả trường của mẫu
+- 03/11/2026 · Hướng dẫn hộp thoại in: phải chọn máy TSC, không chọn máy A4
 
 ## Chưa làm
 
