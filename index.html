@@ -81,12 +81,14 @@
       <label>Rộng (mm)<input id="w" type="number" min="10"></label>
       <label>Cao (mm)<input id="h" type="number" min="10"></label>
     </div>
-    <div class="row" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="row">
       <label>Tem / hàng<input id="cols" type="number" min="1"></label>
-      <label>Khe (mm)<input id="gx" type="number" step="0.5"></label>
-      <label>Lệch trái<input id="ox" type="number" step="0.5"></label>
+      <label>Khe 2 tem (mm)<input id="gx" type="number" step="0.5"></label>
+      <label>Lề giấy (mm)<input id="ox" type="number" step="0.5"></label>
+      <label>Khe hàng (mm)<input id="gy" type="number" step="0.5"></label>
     </div>
     <label>Lề an toàn (mm)<input id="safe" type="number" step="0.5" min="0"></label>
+    <div id="roll"></div>
     <small id="pageInfo"></small>
     <label>Hướng nội dung<select id="rot">
       <option value="0">Ngang</option><option value="270">Dọc — xoay trái</option><option value="90">Dọc — xoay phải</option>
@@ -159,14 +161,14 @@ const TEMPLATES = {
   ] },
 };
 const DEF = {
-  w: 40, h: 30, cols: 2, gx: 2, ox: 0, safe: 2, copies: 1, qtyCol: '',
+  w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, copies: 1, qtyCol: '',
   csv: 'Mã,Tên\n072_S10L_00JRMV,Tab S10 Lite\n040_S10L_00JW8E,Tab S10 Lite',
   ...structuredClone(TEMPLATES['Mẫu 1 · QR + Note']),
 };
 
 qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']; // tiếng Việt trong QR
 
-let S; try { S = JSON.parse(localStorage.tem5); } catch {}
+let S; try { S = JSON.parse(localStorage.tem6); } catch {}
 S = { ...structuredClone(DEF), ...S };
 let sel = 0, rows = [], cols = [], pv = 0, Z = 1;
 // Hoàn tác: mỗi lần lưu mà thiết kế đổi thì cất bản cũ; thay đổi liên tiếp < 0.8s (gõ phím, giữ mũi tên) gộp thành 1 bước
@@ -180,7 +182,7 @@ function save() {
     $('undoBtn').disabled = !hist.length;
   }
   last = now;
-  try { localStorage.tem5 = JSON.stringify(S); } catch {}
+  try { localStorage.tem6 = JSON.stringify(S); } catch {}
 }
 function undo() {
   if (!hist.length) return;
@@ -188,14 +190,14 @@ function undo() {
   last = snapOf(); lastT = 0; $('undoBtn').disabled = !hist.length;
   sel = Math.max(0, Math.min(sel, S.els.length - 1));
   syncInputs(); drawProps(); drawEditor();
-  try { localStorage.tem5 = JSON.stringify(S); } catch {}
+  try { localStorage.tem6 = JSON.stringify(S); } catch {}
 }
 function syncInputs() {
-  for (const k of ['w', 'h', 'cols', 'gx', 'ox', 'safe', 'copies', 'rot']) $(k).value = S[k];
+  for (const k of ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'copies', 'rot']) $(k).value = S[k];
 }
 
 // Mẫu đã lưu (★): chỉ lưu thiết kế + khổ giấy, không lưu dữ liệu
-const DESIGN_KEYS = ['w', 'h', 'cols', 'gx', 'ox', 'safe', 'rot', 'els'];
+const DESIGN_KEYS = ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'rot', 'els'];
 const pick = o => Object.fromEntries(DESIGN_KEYS.filter(k => k in o).map(k => [k, structuredClone(o[k])]));
 let saved = {}; try { saved = JSON.parse(localStorage.temProfiles || '{}'); } catch {}
 const saveProfiles = () => { try { localStorage.temProfiles = JSON.stringify(saved); } catch {} };
@@ -277,14 +279,25 @@ function renderLabel(row, edit) {
 }
 
 function drawEditor() {
-  const n = Math.max(1, S.cols | 0), pw = S.ox + n * S.w + (n - 1) * S.gx;
+  // Khổ trang = cả bề ngang giấy đế: lề + tem + khe + tem + lề
+  const n = Math.max(1, S.cols | 0), pw = 2 * S.ox + n * S.w + (n - 1) * S.gx;
   $('page').textContent = `@page{size:${pw}mm ${S.h}mm;margin:0}.label{flex:none}.pg{width:${pw}mm;height:${S.h}mm}`;
-  $('pageInfo').textContent = `Khổ giấy trong driver: ${pw} × ${S.h} mm`;
+  $('pageInfo').textContent = `Driver TSC: khổ giấy ${pw} × ${S.h} mm · Media: Gap ${S.gy} mm`;
+  drawRoll(n, pw);
   const W = $('stage').parentNode.clientWidth - 48;
   const [dw, dh] = dims();
   Z = Math.min(W / (dw * PX), 380 / (dh * PX));
   $('stage').style.zoom = Z;
   $('stage').replaceChildren(renderLabel(rows[pv] || {}, true));
+}
+
+// Sơ đồ cuộn tem thu nhỏ (2 hàng) để soát lề / khe
+function drawRoll(n, pw) {
+  const k = 200 / pw, H = (2 * S.h + S.gy) * k, r = [];
+  for (let row = 0; row < 2; row++) for (let c = 0; c < n; c++)
+    r.push(`<rect x="${(S.ox + c * (S.w + S.gx)) * k}" y="${row * (S.h + S.gy) * k}" width="${S.w * k}" height="${S.h * k}" rx="2" fill="#fff" stroke="var(--accent)"/>`);
+  $('roll').innerHTML = `<svg viewBox="-1 -1 ${pw * k + 2} ${H + 2}" style="width:100%;max-width:240px;display:block;margin:auto">
+    <rect x="0" y="0" width="${pw * k}" height="${H}" fill="var(--bg3)" stroke="var(--border)"/>${r.join('')}</svg>`;
 }
 
 function drag(ev, i) {
@@ -399,7 +412,7 @@ function doPrint(test) {
   p.replaceChildren();
   for (let i = 0; i < all.length; i += n) {
     const pg = document.createElement('div'); pg.className = 'pg';
-    Object.assign(pg.style, { gap: S.gx + 'mm', marginLeft: S.ox + 'mm' });
+    Object.assign(pg.style, { gap: S.gx + 'mm', paddingLeft: S.ox + 'mm' });
     pg.append(...all.slice(i, i + n)); p.append(pg);
   }
   print();
@@ -446,7 +459,7 @@ $('tplFile').onchange = async () => {
   $('tplFile').value = '';
 };
 $('undoBtn').onclick = undo;
-for (const k of ['cols', 'gx', 'ox', 'safe']) {
+for (const k of ['cols', 'gx', 'ox', 'gy', 'safe']) {
   $(k).value = S[k];
   $(k).oninput = () => { S[k] = k === 'cols' ? Math.max(1, +$(k).value || 1) : +$(k).value || 0; drawEditor(); save(); };
 }
