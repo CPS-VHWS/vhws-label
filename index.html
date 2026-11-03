@@ -103,10 +103,7 @@
     </label>
     <textarea id="csv" spellcheck="false" placeholder="…hoặc dán thẳng từ Excel (dòng đầu là tên cột)"></textarea>
     <div id="warn" class="warn" hidden></div>
-    <div class="row">
-      <label>Cột số lượng<select id="qtyCol"></select></label>
-      <label>Số bản / dòng<input id="copies" type="number" min="1"></label>
-    </div>
+    <label>Số tem mỗi dòng<input id="copies" type="number" min="1"></label>
 
     <div class="step"><span>3</span>In</div>
     <div id="info"></div>
@@ -184,7 +181,7 @@ const TEMPLATES = {
   ] },
 };
 const DEF = {
-  w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, copies: 1, qtyCol: '',
+  w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, copies: 1,
   csv: 'Mã,Tên\n072_S10L_00JRMV,Tab S10 Lite\n040_S10L_00JW8E,Tab S10 Lite',
   ...structuredClone(TEMPLATES['Mẫu 1 · QR + Note']),
 };
@@ -232,7 +229,7 @@ function fillTpls(v) {
 const dims = () => S.rot ? [S.h, S.w] : [S.w, S.h]; // khổ thiết kế (xoay thì đổi chiều)
 const snap = v => Math.round(v * 2) / 2;
 const fill = (t, row) => t.replace(/\{([^}]+)\}/g, (_, k) => row[k.trim()] ?? '');
-const qty = r => S.qtyCol ? Math.max(0, parseInt(r[S.qtyCol]) || 0) : Math.max(1, S.copies || 1);
+const qty = () => Math.max(1, S.copies || 1);
 
 // CSV/TSV: tự đoán dấu phân cách (, ; tab), hỗ trợ "ngoặc kép", bỏ BOM
 function parseCSV(t) {
@@ -417,10 +414,6 @@ function loadData() {
   cols = (a[0] || []).map(s => s.trim());
   rows = a.slice(1).map(r => Object.fromEntries(cols.map((c, i) => [c, (r[i] ?? '').trim()])));
   pv = Math.min(pv, Math.max(0, rows.length - 1));
-  const q = $('qtyCol');
-  q.replaceChildren(new Option('— không dùng —', ''), ...cols.map(c => new Option(c, c)));
-  q.value = cols.includes(S.qtyCol) ? S.qtyCol : '';
-  S.qtyCol = q.value;
   $('pv').max = rows.length; $('pv').value = pv + 1; $('pvn').textContent = '/ ' + rows.length;
   updInfo();
 }
@@ -513,7 +506,6 @@ $('file').onchange = () => loadFile($('file').files[0]);
 addEventListener('dragover', ev => { ev.preventDefault(); $('drop').classList.add('over'); });
 addEventListener('dragleave', ev => { if (!ev.relatedTarget) $('drop').classList.remove('over'); });
 addEventListener('drop', ev => { ev.preventDefault(); $('drop').classList.remove('over'); loadFile(ev.dataTransfer.files[0]); });
-$('qtyCol').onchange = () => { S.qtyCol = $('qtyCol').value; updInfo(); save(); };
 $('copies').oninput = () => { S.copies = +$('copies').value || 1; updInfo(); save(); };
 $('pv').oninput = () => { pv = Math.max(0, Math.min(rows.length - 1, +$('pv').value - 1)); drawEditor(); };
 $('pvPrev').onclick = () => { $('pv').value = pv; $('pv').oninput(); };
