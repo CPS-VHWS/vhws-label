@@ -91,8 +91,16 @@
     <label>Hướng nội dung<select id="rot">
       <option value="0">Ngang</option><option value="270">Dọc — xoay trái</option><option value="90">Dọc — xoay phải</option>
     </select></label>
-    <h3>Mẫu có sẵn</h3>
-    <div class="btns" id="tpls" style="flex-wrap:wrap"></div>
+    <h3>Mẫu tem</h3>
+    <select id="tplSel"></select>
+    <div class="btns" style="flex-wrap:wrap">
+      <button id="tplOpen">Mở</button><button id="tplSave">Lưu mẫu…</button><button id="tplDel" class="del">Xoá</button>
+    </div>
+    <div class="btns" style="flex-wrap:wrap">
+      <button id="tplExport">Xuất file mẫu</button><button id="tplImport">Nhập file mẫu</button>
+    </div>
+    <input id="tplFile" type="file" accept=".json" hidden>
+    <small>★ = mẫu bạn đã lưu. Xuất file để mang mẫu sang máy khác.</small>
     <h3>Dữ liệu</h3>
     <input id="file" type="file" accept=".csv,.txt,.xlsx,.xls">
     <textarea id="csv" spellcheck="false"></textarea>
@@ -108,11 +116,11 @@
 
   <div class="center">
     <div class="btns">
-      <button id="addText">+ Chữ</button><button id="addBar">+ Mã vạch</button><button id="addQr">+ QR</button>
+      <button id="addText">+ Chữ</button><button id="addBar">+ Mã vạch</button><button id="addQr">+ QR</button><button id="undoBtn" disabled>↶ Hoàn tác</button>
     </div>
     <div class="stagewrap"><div id="stage"></div></div>
     <label class="chk">Xem dòng <input id="pv" type="number" min="1" style="width:70px"> <span id="pvn"></span></label>
-    <small>Kéo để di chuyển · mũi tên dịch 0.5mm (Shift = 5mm) · R xoay 15° (Shift+R ngược) · Delete xoá · khung cam = lề an toàn</small>
+    <small>Ctrl/⌘+Z hoàn tác · kéo để di chuyển · mũi tên dịch 0.5mm (Shift = 5mm) · R xoay 15° (Shift+R ngược) · Delete xoá · khung cam = lề an toàn</small>
   </div>
 
   <div class="panel" id="props"></div>
@@ -133,7 +141,7 @@ const FIELDS = {
 };
 const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)',
   bold: 'In đậm', align: 'Căn lề', format: 'Chuẩn mã', showText: 'Hiện số dưới mã', r: 'Xoay (°)' };
-// Mẫu có sẵn — bấm nút trong "Mẫu có sẵn" để nạp, sau đó vẫn kéo thả chỉnh được
+// Mẫu có sẵn — chọn trong "Mẫu tem" rồi bấm Mở, sau đó vẫn kéo thả chỉnh được
 const TEMPLATES = {
   'Mẫu 1 · QR + Note': { rot: 0, els: [
     { type: 'qr', text: '{Mã}', x: 2, y: 2, w: 18 },
@@ -158,7 +166,41 @@ qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']; // tiếng Việt tro
 let S; try { S = JSON.parse(localStorage.tem5); } catch {}
 S = { ...structuredClone(DEF), ...S };
 let sel = 0, rows = [], cols = [], pv = 0, Z = 1;
-const save = () => { try { localStorage.tem5 = JSON.stringify(S); } catch {} };
+// Hoàn tác: mỗi lần lưu mà thiết kế đổi thì cất bản cũ; thay đổi liên tiếp < 0.8s (gõ phím, giữ mũi tên) gộp thành 1 bước
+const snapOf = () => JSON.stringify({ ...S, csv: undefined });
+let hist = [], last, lastT = 0;
+function save() {
+  const now = snapOf();
+  if (last !== undefined && now !== last) {
+    if (Date.now() - lastT > 800) { hist.push(last); if (hist.length > 100) hist.shift(); }
+    lastT = Date.now();
+    $('undoBtn').disabled = !hist.length;
+  }
+  last = now;
+  try { localStorage.tem5 = JSON.stringify(S); } catch {}
+}
+function undo() {
+  if (!hist.length) return;
+  Object.assign(S, JSON.parse(hist.pop()));
+  last = snapOf(); lastT = 0; $('undoBtn').disabled = !hist.length;
+  sel = Math.max(0, Math.min(sel, S.els.length - 1));
+  syncInputs(); drawProps(); drawEditor();
+  try { localStorage.tem5 = JSON.stringify(S); } catch {}
+}
+function syncInputs() {
+  for (const k of ['w', 'h', 'cols', 'gx', 'ox', 'safe', 'copies', 'rot']) $(k).value = S[k];
+}
+
+// Mẫu đã lưu (★): chỉ lưu thiết kế + khổ giấy, không lưu dữ liệu
+const DESIGN_KEYS = ['w', 'h', 'cols', 'gx', 'ox', 'safe', 'rot', 'els'];
+const pick = o => Object.fromEntries(DESIGN_KEYS.filter(k => k in o).map(k => [k, structuredClone(o[k])]));
+let saved = {}; try { saved = JSON.parse(localStorage.temProfiles || '{}'); } catch {}
+const saveProfiles = () => { try { localStorage.temProfiles = JSON.stringify(saved); } catch {} };
+function fillTpls(v) {
+  const sl = $('tplSel');
+  sl.replaceChildren(...Object.keys(TEMPLATES).map(n => new Option(n, n)), ...Object.keys(saved).map(n => new Option('★ ' + n, n)));
+  if (v) sl.value = v;
+}
 const dims = () => S.rot ? [S.h, S.w] : [S.w, S.h]; // khổ thiết kế (xoay thì đổi chiều)
 const snap = v => Math.round(v * 2) / 2;
 const fill = (t, row) => t.replace(/\{([^}]+)\}/g, (_, k) => row[k.trim()] ?? '');
@@ -370,19 +412,42 @@ $('w').oninput = () => { S.w = +$('w').value || S.w; drawEditor(); save(); };
 $('h').oninput = () => { S.h = +$('h').value || S.h; drawEditor(); save(); };
 $('rot').value = S.rot;
 $('rot').onchange = () => { S.rot = +$('rot').value; drawEditor(); save(); };
-for (const [name, t] of Object.entries(TEMPLATES)) $('tpls').append(Object.assign(document.createElement('button'), {
-  textContent: name,
-  onclick: () => {
-    if (!confirm(`Thay thiết kế hiện tại bằng "${name}"?`)) return;
-    Object.assign(S, structuredClone(t)); $('rot').value = S.rot; sel = 0;
-    drawProps(); drawEditor(); save();
-  },
-}));
+fillTpls();
+$('tplOpen').onclick = () => {
+  const t = saved[$('tplSel').value] || TEMPLATES[$('tplSel').value]; if (!t) return;
+  Object.assign(S, structuredClone(t)); sel = 0;
+  syncInputs(); drawProps(); drawEditor(); save();
+};
+$('tplSave').onclick = () => {
+  const cur = $('tplSel').value, n = prompt('Tên mẫu:', saved[cur] ? cur : '')?.trim();
+  if (!n) return;
+  if (TEMPLATES[n]) return alert('Trùng tên mẫu có sẵn, đặt tên khác nhé.');
+  saved[n] = pick(S); saveProfiles(); fillTpls(n);
+};
+$('tplDel').onclick = () => {
+  const n = $('tplSel').value;
+  if (!saved[n]) return alert('Mẫu có sẵn không xoá được.');
+  if (!confirm(`Xoá mẫu "${n}"?`)) return;
+  delete saved[n]; saveProfiles(); fillTpls();
+};
+$('tplExport').onclick = () => Object.assign(document.createElement('a'), {
+  href: URL.createObjectURL(new Blob([JSON.stringify(saved, null, 1)], { type: 'application/json' })), download: 'mau-tem.json',
+}).click();
+$('tplImport').onclick = () => $('tplFile').click();
+$('tplFile').onchange = async () => {
+  try {
+    const d = JSON.parse(await $('tplFile').files[0].text());
+    for (const [n, t] of Object.entries(d)) if (Array.isArray(t?.els)) saved[n] = pick(t);
+    saveProfiles(); fillTpls();
+  } catch { alert('File mẫu không hợp lệ.'); }
+  $('tplFile').value = '';
+};
+$('undoBtn').onclick = undo;
 for (const k of ['cols', 'gx', 'ox', 'safe']) {
   $(k).value = S[k];
   $(k).oninput = () => { S[k] = k === 'cols' ? Math.max(1, +$(k).value || 1) : +$(k).value || 0; drawEditor(); save(); };
 }
-$('csv').oninput = () => { S.csv = $('csv').value; loadData(); drawProps(); drawEditor(); save(); };
+$('csv').oninput = () => { S.csv = $('csv').value; loadData(); drawProps(); drawEditor(); save(); save(); };
 $('file').onchange = async () => {
   const f = $('file').files[0]; if (!f) return;
   // Excel: lấy sheet đầu, đổi sang dạng tab; rawNumbers để mã số dài không thành 8.9E+12
@@ -399,6 +464,8 @@ $('printBtn').onclick = doPrint;
 addEventListener('resize', drawEditor);
 addEventListener('keydown', ev => {
   if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'z') { ev.preventDefault(); undo(); return; }
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
   const e = S.els[sel]; if (!e) return;
   const d = ev.shiftKey ? 5 : 0.5;
   const m = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[ev.key];
@@ -407,7 +474,7 @@ addEventListener('keydown', ev => {
   else if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); remove(); }
 });
 
-loadData(); drawProps(); drawEditor();
+loadData(); drawProps(); drawEditor(); save();
 </script>
 </body>
 </html>
