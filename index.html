@@ -279,6 +279,7 @@ const TEMPLATES = {
     { type: 'qr', text: '{QR}', x: 28, y: 2, w: 10, r: 270 },
     { type: 'text', text: '{Mã}', x: 25.4, y: 19.15, w: 15.2, size: 5.5, bold: true, align: 'center', r: 270 },
   ] },
+  'Tem trắng · tự thiết kế': { rot: 0, els: [] },
 };
 const DEF = {
   w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, copies: 1,
@@ -476,7 +477,7 @@ function updXY() {
 function drawProps() {
   const P = $('props'), e = S.els[sel];
   P.replaceChildren();
-  if (!e) { P.innerHTML = '<small>Chọn hoặc thêm 1 phần tử.</small>'; return; }
+  if (!e) { P.innerHTML = '<small>Bấm <b>+ Chữ / + Mã vạch / + QR / + Khung</b> phía trên tem để thêm, rồi kéo vào chỗ muốn đặt. Bấm vào phần tử để chỉnh ở đây.</small>'; return; }
   P.insertAdjacentHTML('beforeend', `<h3>${NAMES[e.type]}</h3>`);
   for (const k of FIELDS[e.type]) {
     let inp;
