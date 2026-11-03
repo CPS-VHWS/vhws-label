@@ -44,6 +44,8 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 - 03/11/2026 · Hướng dẫn hộp thoại in: phải chọn máy TSC, không chọn máy A4
 - 03/11/2026 · + Thêm trường tự thêm cột vào dữ liệu đang nhập; trường chưa có cột thì chọn "+ Thêm cột … vào dữ liệu"
 - 03/11/2026 · Dữ liệu hiện dạng bảng: sửa từng ô, + Thêm dòng, dán nhiều ô từ Excel; ô chữ thô chuyển vào mục "Dán cả bảng"
+- 03/11/2026 · Làm lại (Ctrl/⌘+Y, Shift+Ctrl/⌘+Z); phím tắt hoàn tác chạy cả khi đang chọn ô số/ô chọn; icon mới
+- 03/11/2026 · Sửa lỗi in tem xoay (Mẫu 2): các trang đầu bị mất dòng dưới do Chrome cắt trang theo khung chưa xoay. Đã kiểm tra in ra PDF cả 3 mẫu: mỗi trang 87×30 mm, đủ nội dung, không trang trắng
 
 ## Chưa làm
 
