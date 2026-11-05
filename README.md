@@ -12,7 +12,9 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 | Tem | 40 × 30 mm, 2 tem/hàng |
 | Giấy đế | 87 mm = lề 2.5 + tem 40 + khe 2 + tem 40 + lề 2.5 |
 | Khe hàng | 3 mm (driver: Media = Gap 3 mm) |
-| Driver | Khổ giấy 87 × 30 mm, Portrait |
+| Driver | Stock USER = 87 × 30 mm, Die-Cut Labels, Exposed Liner 0/0, Portrait |
+| Hộp thoại in | Paper size USER, Portrait, Actual size, Margins None |
+| Lệch ngang / dọc (TE300) | +1 mm / 0 mm (căn tay 05/11/2026) |
 | Vùng an toàn | 2 mm từ mép tem |
 
 ## Cách hoạt động
@@ -47,6 +49,7 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 - 03/11/2026 · Làm lại (Ctrl/⌘+Y, Shift+Ctrl/⌘+Z); phím tắt hoàn tác chạy cả khi đang chọn ô số/ô chọn; icon mới
 - 03/11/2026 · Sửa lỗi in tem xoay (Mẫu 2): các trang đầu bị mất dòng dưới do Chrome cắt trang theo khung chưa xoay. Đã kiểm tra in ra PDF cả 3 mẫu: mỗi trang 87×30 mm, đủ nội dung, không trang trắng
 - 05/11/2026 · Sửa lỗi in máy TSC bị xoay 90° và dính ngày giờ / link / số trang: bỏ khổ giấy trong `@page` (khổ 87×30 làm Chrome tự chuyển trang ngang), để trình duyệt dùng khổ giấy của driver, hướng dọc. Hướng dẫn in thêm Bố cục = Dọc, Khổ giấy 87×30
+- 05/11/2026 · Thêm Lệch ngang / Lệch dọc (căn chỉnh khi in, không đổi khổ giấy). Mặc định TE300 = lệch ngang +1 mm theo lần in thử đạt. Hướng dẫn cài máy in viết lại theo driver thật (Stock USER 87×30, Paper size USER), thêm lỗi đèn đỏ nháy
 
 ## Chưa làm
 

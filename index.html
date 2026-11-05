@@ -184,6 +184,11 @@
           <label>Khe hàng (mm)<input id="gy" type="number" step="0.5"></label>
         </div>
         <label>Lề an toàn (mm)<input id="safe" type="number" step="0.5" min="0"></label>
+        <div class="row">
+          <label>Lệch ngang (mm)<input id="dx" type="number" step="0.5"></label>
+          <label>Lệch dọc (mm)<input id="dy" type="number" step="0.5"></label>
+        </div>
+        <small>Căn chỉnh khi in bị lệch: Lệch ngang + = dịch phải, Lệch dọc + = dịch xuống. Chỉnh mỗi lần 0.5 mm rồi In thử 1 hàng. Không đổi khổ giấy driver.</small>
         <div id="roll"></div>
         <small id="pageInfo"></small>
       </div>
@@ -208,7 +213,7 @@
     <div class="pvwrap">
       <div class="pvhead"><b>Xem trước bản in</b><small id="pvInfo"></small></div>
       <div id="rollPreview"></div>
-      <small>Mô phỏng cuộn tem thật: mỗi hàng = 1 trang in. Hộp thoại in: chọn <b>máy TSC</b>, Bố cục = <b>Dọc</b>, Khổ giấy = <b>87 × 30 mm</b>, Lề = <b>Không</b>, Tỉ lệ = <b>100%</b>, bỏ chọn <b>Đầu trang và chân trang</b>.</small>
+      <small>Mô phỏng cuộn tem thật: mỗi hàng = 1 trang in. Hộp thoại in: máy <b>TSC</b>, Layout <b>Portrait</b>, More settings: Paper size <b>USER</b>, Scale <b>Actual size</b>, Margins <b>None</b>.</small>
     </div>
     <small>Ctrl/⌘+Z hoàn tác · Ctrl/⌘+Y làm lại · kéo để di chuyển · mũi tên dịch 0.5mm (Shift = 5mm) · R xoay 15° (Shift+R ngược) · Delete xoá · khung cam = lề an toàn</small>
   </div>
@@ -220,8 +225,9 @@
   <p class="muted">Mở link này trên máy tính có cắm máy in là in được, không cần cài app.</p>
   <p class="warn">⚠ Thông số mặc định cài sẵn cho <b>máy TSC TE300</b> + cuộn tem <b>40×30 mm, 2 tem/hàng</b> (giấy đế 87 mm, khe hàng 3 mm).
     Máy in khác hoặc loại tem khác: mở <b>Máy in &amp; khổ tem</b> ở cột trái, chỉnh số, bấm <b>Lưu cấu hình…</b>, cài khổ giấy tương ứng trong driver, rồi <b>In thử 1 hàng</b> trước.</p>
-  <p class="warn">🖨 Hộp thoại in: chọn đúng <b>máy TSC</b> (không phải máy in A4 như Brother/Canon). Chọn máy A4 thì xem trước sẽ ra trang A4 và in sai.
-    Bố cục = <b>Dọc</b>. Mở <b>Cài đặt khác</b>: Khổ giấy = khổ đã tạo trong driver (87 × 30 mm), Lề = <b>Không</b>, Tỉ lệ = <b>100%</b>, bỏ chọn <b>Đầu trang và chân trang</b>.</p>
+  <p class="warn">🖨 Hộp thoại in: chọn đúng <b>máy TSC</b> (không phải máy in A4 như Brother/Canon), Layout = <b>Portrait</b>.
+    Mở <b>More settings</b>: Paper size = <b>USER</b> (khổ 87 × 30 đã cài trong driver), Scale = <b>Actual size</b>, Margins = <b>None</b>.
+    Không dùng <i>Print using system dialog</i>. Xem trước đúng là <b>1 dải ngang dẹt có 2 tem</b>; ra trang dọc cao là sai khổ giấy.</p>
 
   <h4>Yêu cầu</h4>
   <table>
@@ -233,20 +239,30 @@
     <tr><td>Dữ liệu</td><td>File Excel (.xlsx) hoặc CSV, dòng đầu là tên cột</td></tr>
   </table>
 
-  <h4>Cài driver 1 lần</h4>
+  <h4>Cài máy in 1 lần (TSC TE300)</h4>
   <ol>
-    <li>Windows: <i>Settings → Printers</i> → máy TSC → <i>Printing preferences</i>.</li>
-    <li><b>Page Setup</b>: tạo khổ giấy mới <b>87 × 30 mm</b>, hướng <b>Portrait</b>.</li>
-    <li><b>Stock / Media</b>: chọn <b>Gap</b> (Labels with gaps), gap <b>3 mm</b>, offset 0.</li>
-    <li>Thay cuộn mới: giữ nút <b>FEED</b> đến khi đèn nháy rồi thả để máy tự dò khe (calibrate).</li>
+    <li>Cài <b>driver TSC</b> (Seagull) đúng model, cắm USB.</li>
+    <li>Windows: bấm phím Windows, gõ <i>Printers &amp; scanners</i> → <b>TSC TE300</b> → <b>Printing preferences</b>.</li>
+    <li>Tab <b>Page Setup</b> → Stock chọn <b>USER</b> → <b>Edit…</b>:
+      <ul>
+        <li>Type = <b>Die-Cut Labels</b> (tem có khe)</li>
+        <li>Width = <b>87 mm</b>, Height = <b>30 mm</b></li>
+        <li>Exposed Liner Widths: Left = <b>0</b>, Right = <b>0</b> (lề giấy đế app đã tính sẵn)</li>
+      </ul>
+      Bấm <b>OK</b>. Hướng giấy để <b>Portrait</b>.</li>
+    <li>Tab <b>Stock</b>: Method / Type để <i>Use Current Printer Setting</i>; Position Adjustments để <i>Use Current Printer Settings</i> (lệch thì chỉnh trong app, xem dưới).</li>
+    <li>Bấm <b>Apply</b> → <b>OK</b>.</li>
+    <li>Thay cuộn mới: tắt máy, giữ nút <b>FEED</b> rồi bật máy, thấy đèn nháy thì thả để máy tự dò khe tem (calibrate).</li>
+    <li>Mở app, bấm <b>In thử 1 hàng</b>, chọn đúng như ô 🖨 ở trên. Edge nhớ lựa chọn cho lần sau.</li>
   </ol>
+  <p class="muted">Lỡ chọn Paper size = 2 x 4 / 4 x 4 / 4 x 6 (khổ inch): trang in quá dài, tem bị thu nhỏ, lệch, máy đẩy ra mấy hàng tem trắng.</p>
 
   <h4>In tem</h4>
   <ol>
     <li><b>Chọn mẫu</b> (Mẫu 1/2/3 hoặc mẫu ★ đã lưu). Muốn sửa thì kéo thả, bấm vào phần tử để chỉnh bên phải.</li>
     <li>Bấm <b>⬇ Tải file Excel mẫu</b> → điền dữ liệu, mỗi dòng là 1 tem → kéo thả file vào trang.</li>
     <li>Kiểm tra phần <b>Ghép cột Excel</b>: mỗi ô trên tem đã có cột chưa. Dùng ◀ ▶ xem thử từng dòng.</li>
-    <li>Bấm <b>In thử 1 hàng</b>. Trong hộp thoại in: chọn máy TSC, <b>Bố cục = Dọc</b>, <b>Khổ giấy = 87 × 30 mm</b>, <b>Lề = Không</b>, <b>Tỉ lệ = 100%</b>, tắt <i>Đầu trang và chân trang</i>. Xem trước phải là 1 dải dài hẹp, không có ngày giờ / link.</li>
+    <li>Bấm <b>In thử 1 hàng</b>. Trong hộp thoại in: chọn máy TSC, Layout <b>Portrait</b>, Paper size <b>USER</b>, Scale <b>Actual size</b>, Margins <b>None</b>. Xem trước phải là 1 dải ngang dẹt có 2 tem, không có ngày giờ / link.</li>
     <li>Tem in đúng chỗ thì bấm <b>In tem</b>. Nhiều tem thì in mỗi lần 100–200 tem.</li>
   </ol>
 
@@ -271,10 +287,12 @@
 
   <h4>Lỗi hay gặp</h4>
   <ul>
-    <li><b>Tem lệch ngang</b>: mở <i>Khổ giấy &amp; lề</i>, chỉnh <i>Lề giấy</i> / <i>Khe 2 tem</i> mỗi lần 0.5 mm, in thử lại.</li>
-    <li><b>Tem lệch dọc, trôi dần</b>: calibrate lại (giữ FEED), kiểm tra driver đang để Gap 3 mm.</li>
-    <li><b>In ra bị xoay / bị cắt</b>: driver phải là khổ 87 × 30 mm, hướng Portrait; hộp thoại in Bố cục = Dọc, Khổ giấy 87 × 30 mm, Tỉ lệ 100%.</li>
-    <li><b>Tem dính ngày giờ, tên trang, link, số trang</b>: hộp thoại in → Cài đặt khác → bỏ chọn <i>Đầu trang và chân trang</i>, Lề = Không.</li>
+    <li><b>Tem lệch ngang / dọc</b>: mở <i>Máy in &amp; khổ tem</i> ở cột trái, chỉnh <i>Lệch ngang</i> (+ = sang phải) / <i>Lệch dọc</i> (+ = xuống) mỗi lần 0.5 mm, in thử lại. Không sửa khổ giấy trong driver.</li>
+    <li><b>Lệch dọc trôi dần qua từng hàng</b>: calibrate lại (tắt máy, giữ FEED, bật máy).</li>
+    <li><b>Xem trước ra trang dọc cao, in ra tem nhỏ + nhiều hàng trắng</b>: Paper size đang là 2 x 4… → chọn <b>USER</b>; driver USER phải là 87 × 30 mm.</li>
+    <li><b>In ra bị xoay 90°</b>: Layout = Portrait; driver USER 87 × 30, hướng Portrait.</li>
+    <li><b>Tem dính ngày giờ, tên trang, link, số trang</b>: More settings → Margins = None, bỏ chọn <i>Headers and footers</i>.</li>
+    <li><b>Đèn đỏ nháy</b>: máy báo lỗi giấy / mực. Mở nắp kiểm tra tem đi đúng rãnh, kẹp giấy ép sát mép cuộn, ribbon (mực) còn và không nhăn, đóng chặt nắp, bấm <b>FEED</b> 1 lần. Vẫn nháy thì calibrate lại.</li>
     <li><b>Ô trên tem bị trống</b>: phần Ghép cột Excel còn ô chưa chọn cột.</li>
     <li>Lỡ tay: bấm <b>Hoàn tác</b> hoặc Ctrl/⌘+Z; muốn làm lại thì <b>Làm lại</b> hoặc Ctrl/⌘+Y.</li>
   </ul>
@@ -319,7 +337,7 @@ const TEMPLATES = {
   'Tem trắng · tự thiết kế': { rot: 0, els: [] },
 };
 const DEF = {
-  w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, copies: 1,
+  w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, dx: 1, dy: 0, copies: 1,
   csv: 'Mã,Tên,QR\n072_S10L_00JRMV,Tab S10 Lite,https://example.com/072_S10L_00JRMV\n040_S10L_00JW8E,Tab S10 Lite,https://example.com/040_S10L_00JW8E',
   ...structuredClone(TEMPLATES['Mẫu 1 · QR + Note']),
 };
@@ -327,6 +345,8 @@ const DEF = {
 qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']; // tiếng Việt trong QR
 
 let S; try { S = JSON.parse(localStorage.tem6); } catch {}
+// Bản cũ chưa có Lệch ngang/dọc: máy đã căn bằng Lề giấy 3.5 thì chuyển thành Lề 2.5 + Lệch ngang 1 (in ra y hệt, khổ giấy về đúng 87 mm)
+if (S && !('dx' in S)) { S.dx = 0; S.dy = 0; if (S.ox === 3.5) { S.ox = 2.5; S.dx = 1; } }
 S = { ...structuredClone(DEF), ...S };
 let sel = 0, rows = [], cols = [], pv = 0, Z = 1;
 // Hoàn tác: mỗi lần lưu mà thiết kế đổi thì cất bản cũ; thay đổi liên tiếp < 0.8s (gõ phím, giữ mũi tên) gộp thành 1 bước
@@ -354,15 +374,16 @@ function step(from, to) {
   try { localStorage.tem6 = JSON.stringify(S); } catch {}
 }
 function syncInputs() {
-  for (const k of ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'copies', 'rot']) $(k).value = S[k];
+  for (const k of ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'dx', 'dy', 'copies', 'rot']) $(k).value = S[k];
 }
 
 // Mẫu đã lưu (★): chỉ lưu thiết kế + khổ giấy, không lưu dữ liệu
 // Cấu hình máy in / loại tem: mặc định TSC TE300 + tem 40×30 2 tem/hàng, user lưu thêm cái khác
-const PRN_KEYS = ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe'];
-const PRINTERS = { 'TSC TE300 · tem 40×30 · 2 tem/hàng': { w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2 } };
+// dx/dy = Lệch ngang/dọc: dịch cả hàng tem khi in để bù sai lệch của máy, không đổi khổ giấy. TE300: đã căn tay 05/11/2026, dịch phải 1 mm
+const PRN_KEYS = ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'dx', 'dy'];
+const PRINTERS = { 'TSC TE300 · tem 40×30 · 2 tem/hàng': { w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, dx: 1, dy: 0 } };
 let myPrn = {}; try { myPrn = JSON.parse(localStorage.temPrinters || '{}'); } catch {}
-const allPrn = () => ({ ...PRINTERS, ...myPrn });
+const allPrn = () => ({ ...PRINTERS, ...Object.fromEntries(Object.entries(myPrn).map(([n, p]) => [n, { dx: 0, dy: 0, ...p }])) });
 const prnName = () => Object.keys(allPrn()).find(n => PRN_KEYS.every(k => allPrn()[n][k] === S[k])) || '';
 function fillPrn() {
   const sl = $('prnSel'), cur = prnName();
@@ -463,7 +484,7 @@ function drawEditor() {
   // Để trình duyệt dùng khổ giấy của driver, hướng dọc; margin 0 để không in đầu/chân trang.
   const n = Math.max(1, S.cols | 0), pw = 2 * S.ox + n * S.w + (n - 1) * S.gx;
   $('page').textContent = `@page{margin:0}.label{flex:none}.pg{width:${pw}mm;height:${S.h}mm}`;
-  $('pageInfo').textContent = `Driver TSC: khổ giấy ${pw} × ${S.h} mm · Media: Gap ${S.gy} mm`;
+  $('pageInfo').textContent = `Driver TSC: Stock USER = ${pw} × ${S.h} mm, Die-Cut Labels · khe hàng ${S.gy} mm`;
   drawRoll(n, pw);
   $('paperSum').textContent = prnName() || `Tuỳ chỉnh ${S.w}×${S.h} mm, ${n} tem/hàng`;
   fillPrn(); schedPreview();
@@ -719,7 +740,8 @@ function doPrint(test) {
   for (let i = 0; i < all.length; i += n) {
     const pg = document.createElement('div'); pg.className = 'pg';
     Object.assign(pg.style, { gap: S.gx + 'mm', paddingLeft: S.ox + 'mm' });
-    pg.append(...all.slice(i, i + n)); p.append(pg);
+    for (const l of all.slice(i, i + n)) { l.style.left = S.dx + 'mm'; l.style.top = S.dy + 'mm'; pg.append(l); }
+    p.append(pg);
   }
   print();
 }
@@ -766,7 +788,7 @@ $('tplFile').onchange = async () => {
   $('tplFile').value = '';
 };
 $('undoBtn').onclick = undo; $('redoBtn').onclick = redo;
-for (const k of ['cols', 'gx', 'ox', 'gy', 'safe']) {
+for (const k of ['cols', 'gx', 'ox', 'gy', 'safe', 'dx', 'dy']) {
   $(k).value = S[k];
   $(k).oninput = () => { S[k] = k === 'cols' ? Math.max(1, +$(k).value || 1) : +$(k).value || 0; drawEditor(); updInfo(); save(); };
 }
