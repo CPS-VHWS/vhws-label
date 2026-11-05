@@ -50,6 +50,7 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 - 03/11/2026 · Sửa lỗi in tem xoay (Mẫu 2): các trang đầu bị mất dòng dưới do Chrome cắt trang theo khung chưa xoay. Đã kiểm tra in ra PDF cả 3 mẫu: mỗi trang 87×30 mm, đủ nội dung, không trang trắng
 - 05/11/2026 · Sửa lỗi in máy TSC bị xoay 90° và dính ngày giờ / link / số trang: bỏ khổ giấy trong `@page` (khổ 87×30 làm Chrome tự chuyển trang ngang), để trình duyệt dùng khổ giấy của driver, hướng dọc. Hướng dẫn in thêm Bố cục = Dọc, Khổ giấy 87×30
 - 05/11/2026 · Thêm Lệch ngang / Lệch dọc (căn chỉnh khi in, không đổi khổ giấy). Mặc định TE300 = lệch ngang +1 mm theo lần in thử đạt. Hướng dẫn cài máy in viết lại theo driver thật (Stock USER 87×30, Paper size USER), thêm lỗi đèn đỏ nháy
+- 05/11/2026 · Hướng dẫn: thêm Bảng setting chuẩn TE300 (driver, hộp thoại in, số trong app, máy in) và cách về lại mặc định
 
 ## Chưa làm
 
