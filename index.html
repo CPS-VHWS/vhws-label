@@ -208,7 +208,7 @@
     <div class="pvwrap">
       <div class="pvhead"><b>Xem trước bản in</b><small id="pvInfo"></small></div>
       <div id="rollPreview"></div>
-      <small>Mô phỏng cuộn tem thật: mỗi hàng = 1 trang in. Hộp thoại in phải chọn <b>máy TSC</b> (không phải máy in A4), Lề = Không, Tỉ lệ = 100%.</small>
+      <small>Mô phỏng cuộn tem thật: mỗi hàng = 1 trang in. Hộp thoại in: chọn <b>máy TSC</b>, Bố cục = <b>Dọc</b>, Khổ giấy = <b>87 × 30 mm</b>, Lề = <b>Không</b>, Tỉ lệ = <b>100%</b>, bỏ chọn <b>Đầu trang và chân trang</b>.</small>
     </div>
     <small>Ctrl/⌘+Z hoàn tác · Ctrl/⌘+Y làm lại · kéo để di chuyển · mũi tên dịch 0.5mm (Shift = 5mm) · R xoay 15° (Shift+R ngược) · Delete xoá · khung cam = lề an toàn</small>
   </div>
@@ -221,7 +221,7 @@
   <p class="warn">⚠ Thông số mặc định cài sẵn cho <b>máy TSC TE300</b> + cuộn tem <b>40×30 mm, 2 tem/hàng</b> (giấy đế 87 mm, khe hàng 3 mm).
     Máy in khác hoặc loại tem khác: mở <b>Máy in &amp; khổ tem</b> ở cột trái, chỉnh số, bấm <b>Lưu cấu hình…</b>, cài khổ giấy tương ứng trong driver, rồi <b>In thử 1 hàng</b> trước.</p>
   <p class="warn">🖨 Hộp thoại in: chọn đúng <b>máy TSC</b> (không phải máy in A4 như Brother/Canon). Chọn máy A4 thì xem trước sẽ ra trang A4 và in sai.
-    Mở <b>Cài đặt khác</b>: Khổ giấy = khổ đã tạo trong driver, Lề = <b>Không</b>, Tỉ lệ = <b>100%</b>, bỏ chọn <b>Đầu trang và chân trang</b>.</p>
+    Bố cục = <b>Dọc</b>. Mở <b>Cài đặt khác</b>: Khổ giấy = khổ đã tạo trong driver (87 × 30 mm), Lề = <b>Không</b>, Tỉ lệ = <b>100%</b>, bỏ chọn <b>Đầu trang và chân trang</b>.</p>
 
   <h4>Yêu cầu</h4>
   <table>
@@ -246,7 +246,7 @@
     <li><b>Chọn mẫu</b> (Mẫu 1/2/3 hoặc mẫu ★ đã lưu). Muốn sửa thì kéo thả, bấm vào phần tử để chỉnh bên phải.</li>
     <li>Bấm <b>⬇ Tải file Excel mẫu</b> → điền dữ liệu, mỗi dòng là 1 tem → kéo thả file vào trang.</li>
     <li>Kiểm tra phần <b>Ghép cột Excel</b>: mỗi ô trên tem đã có cột chưa. Dùng ◀ ▶ xem thử từng dòng.</li>
-    <li>Bấm <b>In thử 1 hàng</b>. Trong hộp thoại in: chọn máy TSC, <b>Lề = Không</b>, <b>Tỉ lệ = 100%</b>, tắt <i>Đầu trang và chân trang</i>.</li>
+    <li>Bấm <b>In thử 1 hàng</b>. Trong hộp thoại in: chọn máy TSC, <b>Bố cục = Dọc</b>, <b>Khổ giấy = 87 × 30 mm</b>, <b>Lề = Không</b>, <b>Tỉ lệ = 100%</b>, tắt <i>Đầu trang và chân trang</i>. Xem trước phải là 1 dải dài hẹp, không có ngày giờ / link.</li>
     <li>Tem in đúng chỗ thì bấm <b>In tem</b>. Nhiều tem thì in mỗi lần 100–200 tem.</li>
   </ol>
 
@@ -273,7 +273,8 @@
   <ul>
     <li><b>Tem lệch ngang</b>: mở <i>Khổ giấy &amp; lề</i>, chỉnh <i>Lề giấy</i> / <i>Khe 2 tem</i> mỗi lần 0.5 mm, in thử lại.</li>
     <li><b>Tem lệch dọc, trôi dần</b>: calibrate lại (giữ FEED), kiểm tra driver đang để Gap 3 mm.</li>
-    <li><b>In ra bị xoay / bị cắt</b>: driver phải là khổ 87 × 30 mm, hướng Portrait; Chrome Tỉ lệ 100%.</li>
+    <li><b>In ra bị xoay / bị cắt</b>: driver phải là khổ 87 × 30 mm, hướng Portrait; hộp thoại in Bố cục = Dọc, Khổ giấy 87 × 30 mm, Tỉ lệ 100%.</li>
+    <li><b>Tem dính ngày giờ, tên trang, link, số trang</b>: hộp thoại in → Cài đặt khác → bỏ chọn <i>Đầu trang và chân trang</i>, Lề = Không.</li>
     <li><b>Ô trên tem bị trống</b>: phần Ghép cột Excel còn ô chưa chọn cột.</li>
     <li>Lỡ tay: bấm <b>Hoàn tác</b> hoặc Ctrl/⌘+Z; muốn làm lại thì <b>Làm lại</b> hoặc Ctrl/⌘+Y.</li>
   </ul>
@@ -457,9 +458,11 @@ function renderLabel(row, edit) {
 }
 
 function drawEditor() {
-  // Khổ trang = cả bề ngang giấy đế: lề + tem + khe + tem + lề
+  // Khổ trang = cả bề ngang giấy đế: lề + tem + khe + tem + lề.
+  // Không ghi size trong @page: khổ 87×30 (rộng > cao) làm Chrome tự chuyển sang trang ngang → driver TSC xoay bản in 90°.
+  // Để trình duyệt dùng khổ giấy của driver, hướng dọc; margin 0 để không in đầu/chân trang.
   const n = Math.max(1, S.cols | 0), pw = 2 * S.ox + n * S.w + (n - 1) * S.gx;
-  $('page').textContent = `@page{size:${pw}mm ${S.h}mm;margin:0}.label{flex:none}.pg{width:${pw}mm;height:${S.h}mm}`;
+  $('page').textContent = `@page{margin:0}.label{flex:none}.pg{width:${pw}mm;height:${S.h}mm}`;
   $('pageInfo').textContent = `Driver TSC: khổ giấy ${pw} × ${S.h} mm · Media: Gap ${S.gy} mm`;
   drawRoll(n, pw);
   $('paperSum').textContent = prnName() || `Tuỳ chỉnh ${S.w}×${S.h} mm, ${n} tem/hàng`;
