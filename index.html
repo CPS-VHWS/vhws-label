@@ -133,6 +133,7 @@
   .label { position: relative; overflow: hidden; background: #fff; font-family: "Arial Narrow", Arial, sans-serif; color: #000; }
   .safe { position: absolute; border: 1px dashed #f59e0b; pointer-events: none; }
   .lbl-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .mirn { pointer-events: none; }
   .mir { position: absolute; inset: 0; transform: rotate(180deg); pointer-events: none; }
   .el { position: absolute; line-height: 1.1; overflow-wrap: anywhere; }
   .el > svg { width: 100%; height: 100%; display: block; }
@@ -211,7 +212,9 @@
   <div class="center">
     <div class="btns tools">
       <button id="addText">+ Chữ</button><button id="addBar">+ Mã vạch</button><button id="addQr">+ QR</button><button id="addBox">+ Khung</button>
-      <label class="chk" title="Chế độ đối xứng: thiết kế 1 bên, bên kia tự hiện (xoay 180° quanh tâm tem)"><input type="checkbox" id="sym"> ⇄ Đối xứng</label>
+      <select id="sym" title="Chế độ đối xứng: thiết kế 1 bên, bên kia tự hiện" style="width:auto">
+        <option value="">Không đối xứng</option><option value="c">Đối xứng tâm (xoay 180°)</option><option value="h">Đối xứng ngang (trái ↔ phải)</option><option value="v">Đối xứng dọc (trên ↔ dưới)</option>
+      </select>
       <select id="rot" title="Hướng nội dung trên tem" style="width:auto">
         <option value="0">Tem ngang</option><option value="270">Dọc — xoay trái</option><option value="90">Dọc — xoay phải</option>
       </select>
@@ -330,8 +333,14 @@
     </ul>
   </div>
 
-  <h4>Chế độ đối xứng (2 chữ / 2 QR quay ngược nhau)</h4>
-  <p>Tick <b>⇄ Đối xứng</b> trên thanh công cụ phía trên tem: chỉ cần thiết kế 1 bên, mọi phần tử tự có bản sao bên kia (xoay 180° quanh tâm tem), tự theo khi bạn kéo, đổi chữ, đổi cỡ. Bản đối xứng chỉ để xem, muốn sửa thì sửa phần tử gốc. Bỏ tick là về tem thường. Mẫu ★ lưu kèm chế độ này. Nên đặt phần tử gốc ở nửa tem (vd nửa trên hoặc nửa trái) để 2 bản không chồng nhau.</p>
+  <h4>Chế độ đối xứng (2 chữ / 2 QR đối xứng nhau)</h4>
+  <p>Chọn ô <b>Đối xứng</b> trên thanh công cụ phía trên tem. Chỉ cần thiết kế 1 bên, mọi phần tử tự có bản sao bên kia, tự theo khi bạn kéo, đổi chữ, đổi cỡ:</p>
+  <ul>
+    <li><b>Đối xứng tâm</b>: xoay 180° quanh tâm tem (chữ bên kia quay ngược, đọc được từ cạnh đối diện).</li>
+    <li><b>Đối xứng ngang</b>: bản sao ở bên đối diện trái ↔ phải, chữ không bị lật.</li>
+    <li><b>Đối xứng dọc</b>: bản sao ở bên đối diện trên ↔ dưới, chữ không bị lật.</li>
+  </ul>
+  <p>Bản sao chỉ để xem, muốn sửa thì sửa phần tử gốc. Chọn <i>Không đối xứng</i> là về tem thường. Mẫu ★ lưu kèm chế độ này. Nên đặt phần tử gốc ở nửa tem (nửa trái / nửa trên) để 2 bản không chồng nhau. Ngang / dọc: chữ xoay 90° thì bản sao xoay ngược lại (270°).</p>
 
   <h4>Chữ quá dài (import dữ liệu bị tràn)</h4>
   <ul>
@@ -434,7 +443,7 @@ function step(from, to) {
 }
 function syncInputs() {
   for (const k of ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'dx', 'dy', 'copies', 'rot']) $(k).value = S[k];
-  $('sym').checked = !!S.sym;
+  $('sym').value = S.sym === true ? 'c' : S.sym || '';
 }
 
 // Mẫu đã lưu (★): chỉ lưu thiết kế + khổ giấy, không lưu dữ liệu
@@ -604,11 +613,19 @@ function renderLabel(row, edit) {
     return n;
   };
   S.els.forEach((e, i) => C.append(build(e, i)));
-  // Đối xứng: bản sao xoay 180° quanh tâm tem, tự theo phần tử gốc
-  if (S.sym) {
+  // Đối xứng: bản sao tự theo phần tử gốc. Tâm = xoay 180° quanh tâm tem; ngang / dọc = đặt ở vị trí đối xứng qua trục dọc / trục ngang giữa tem, chữ không bị lật (góc xoay đảo dấu)
+  const sm = S.sym === true ? 'c' : S.sym;
+  if (sm === 'c') {
     const M = document.createElement('div'); M.className = 'mir';
     S.els.forEach((e, i) => M.append(build(e, i, true)));
     C.append(M);
+  } else if (sm === 'h' || sm === 'v') {
+    S.els.forEach((e, i) => {
+      const n = build(e, i, true); n.classList.add('mirn');
+      if (sm === 'h') { n.style.left = ''; n.style.right = e.x + 'mm'; } else { n.style.top = ''; n.style.bottom = e.y + 'mm'; }
+      n.style.transform = e.r ? `rotate(${-e.r}deg)` : '';
+      C.append(n);
+    });
   }
   return L;
 }
@@ -933,13 +950,13 @@ $('w').value = S.w; $('h').value = S.h; $('csv').value = S.csv; $('copies').valu
 $('w').oninput = () => { S.w = +$('w').value || S.w; drawEditor(); save(); };
 $('h').oninput = () => { S.h = +$('h').value || S.h; drawEditor(); save(); };
 $('rot').value = S.rot;
-$('sym').checked = !!S.sym;
-$('sym').onchange = () => { S.sym = $('sym').checked; drawEditor(); save(); };
+$('sym').value = S.sym === true ? 'c' : S.sym || '';
+$('sym').onchange = () => { S.sym = $('sym').value || false; drawEditor(); save(); };
 $('rot').onchange = () => { S.rot = +$('rot').value; drawEditor(); save(); };
 fillTpls();
 $('tplSel').onchange = () => {
   const t = saved[$('tplSel').value] || TEMPLATES[$('tplSel').value]; if (!t) return;
-  Object.assign(S, structuredClone(t)); S.sym = !!t.sym; sel = 0;
+  Object.assign(S, structuredClone(t)); S.sym = t.sym === true ? 'c' : t.sym || false; sel = 0;
   syncInputs(); drawProps(); drawEditor(); save();
 };
 $('tplSave').onclick = () => {
