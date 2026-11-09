@@ -630,7 +630,8 @@ function clamp(i) {
   const e = S.els[i], n = $('stage').querySelectorAll('.el')[i];
   if (!e || !n) return;
   const k = PX * Z, s = S.safe * k, L = $('stage').querySelector('.label').getBoundingClientRect(), r = n.getBoundingClientRect();
-  const fix = (lo, hi, a, b) => a < lo ? (lo - a) / k : b > hi ? Math.max((hi - b) / k, (lo - a) / k) : 0;
+  // Phần tử dài hơn vùng an toàn theo hướng đó (vd chữ xoay dọc mà khung quá dài): không ép lại, để kéo thả tự do và hiện viền đỏ
+  const fix = (lo, hi, a, b) => b - a > hi - lo + 0.5 ? 0 : a < lo ? (lo - a) / k : b > hi ? Math.max((hi - b) / k, (lo - a) / k) : 0;
   const dx = fix(L.left + s, L.right - s, r.left, r.right), dy = fix(L.top + s, L.bottom - s, r.top, r.bottom);
   if (!dx && !dy) return;
   e.x = Math.round((e.x + dx) * 10) / 10; e.y = Math.round((e.y + dy) * 10) / 10;
@@ -640,6 +641,8 @@ function clamp(i) {
 function rotate(d) {
   const e = S.els[sel]; if (!e) return;
   e.r = ((((e.r || 0) + d) % 360) + 360) % 360;
+  // Xoay dọc: khung chữ rộng hơn chiều cao tem thì thu lại cho vừa vùng an toàn
+  if (e.r % 180 === 90 && (e.type === 'text' || e.type === 'box')) { const m = dims()[1] - 2 * S.safe; if (e.w > m) { e.w = m; if ($('p_w')) $('p_w').value = e.w; } }
   if ($('p_r')) $('p_r').value = e.r;
   drawEditor(); clamp(sel); updXY(); save();
 }
