@@ -211,6 +211,7 @@
   <div class="center">
     <div class="btns tools">
       <button id="addText">+ Chữ</button><button id="addBar">+ Mã vạch</button><button id="addQr">+ QR</button><button id="addBox">+ Khung</button>
+      <label class="chk" title="Chế độ đối xứng: thiết kế 1 bên, bên kia tự hiện (xoay 180° quanh tâm tem)"><input type="checkbox" id="sym"> ⇄ Đối xứng</label>
       <select id="rot" title="Hướng nội dung trên tem" style="width:auto">
         <option value="0">Tem ngang</option><option value="270">Dọc — xoay trái</option><option value="90">Dọc — xoay phải</option>
       </select>
@@ -329,8 +330,8 @@
     </ul>
   </div>
 
-  <h4>Tem đối xứng (2 chữ / 2 QR quay ngược nhau)</h4>
-  <p>Làm xong 1 bên, chọn phần tử đó, tick <b>Tự tạo bản đối xứng</b> ở khung bên phải: bên kia tự hiện (xoay 180° quanh tâm tem) và tự theo khi bạn kéo, đổi chữ, đổi cỡ. Bản đối xứng chỉ hiện để xem, muốn sửa thì sửa phần tử gốc.</p>
+  <h4>Chế độ đối xứng (2 chữ / 2 QR quay ngược nhau)</h4>
+  <p>Tick <b>⇄ Đối xứng</b> trên thanh công cụ phía trên tem: chỉ cần thiết kế 1 bên, mọi phần tử tự có bản sao bên kia (xoay 180° quanh tâm tem), tự theo khi bạn kéo, đổi chữ, đổi cỡ. Bản đối xứng chỉ để xem, muốn sửa thì sửa phần tử gốc. Bỏ tick là về tem thường. Mẫu ★ lưu kèm chế độ này. Nên đặt phần tử gốc ở nửa tem (vd nửa trên hoặc nửa trái) để 2 bản không chồng nhau.</p>
 
   <h4>Chữ quá dài (import dữ liệu bị tràn)</h4>
   <ul>
@@ -364,12 +365,12 @@ const FORMATS = ['CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39', 'ITF14'];
 const NAMES = { text: 'Chữ', barcode: 'Mã vạch', qr: 'QR', box: 'Khung' };
 const TYPE_DEF = { text: { size: 8, bold: false, align: 'left' }, barcode: { format: 'CODE128', h: 10, showText: true, size: 7 }, qr: {}, box: { h: 15, size: 6.5 } };
 const FIELDS = {
-  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'bold', 'align', 'r', 'mirror'],
-  barcode: ['text', 'format', 'x', 'y', 'w', 'h', 'showText', 'size', 'r', 'mirror'],
-  qr: ['text', 'x', 'y', 'w', 'r', 'mirror'],
-  box: ['text', 'x', 'y', 'w', 'h', 'size', 'fit', 'r', 'mirror'],
+  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'bold', 'align', 'r'],
+  barcode: ['text', 'format', 'x', 'y', 'w', 'h', 'showText', 'size', 'r'],
+  qr: ['text', 'x', 'y', 'w', 'r'],
+  box: ['text', 'x', 'y', 'w', 'h', 'size', 'fit', 'r'],
 };
-const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', mirror: 'Tự tạo bản đối xứng (xoay 180° quanh tâm tem)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
+const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
   bold: 'In đậm', align: 'Căn lề', format: 'Chuẩn mã', showText: 'Hiện số dưới mã', r: 'Xoay (°)' };
 // Mẫu có sẵn — chọn trong "Mẫu tem" rồi bấm Mở, sau đó vẫn kéo thả chỉnh được
 const TEMPLATES = {
@@ -394,7 +395,7 @@ const TEMPLATES = {
   'Tem trắng · tự thiết kế': { rot: 0, els: [] },
 };
 const DEF = {
-  w: 40, h: 30, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, dx: 1, dy: 0, copies: 1,
+  w: 40, h: 30, sym: false, cols: 2, gx: 2, ox: 2.5, gy: 3, safe: 2, dx: 1, dy: 0, copies: 1,
   csv: 'Mã,Tên,QR\n072_S10L_00JRMV,Tab S10 Lite,https://example.com/072_S10L_00JRMV\n040_S10L_00JW8E,Tab S10 Lite,https://example.com/040_S10L_00JW8E',
   ...structuredClone(TEMPLATES['Mẫu 1 · QR + Note']),
 };
@@ -432,6 +433,7 @@ function step(from, to) {
 }
 function syncInputs() {
   for (const k of ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'dx', 'dy', 'copies', 'rot']) $(k).value = S[k];
+  $('sym').checked = !!S.sym;
 }
 
 // Mẫu đã lưu (★): chỉ lưu thiết kế + khổ giấy, không lưu dữ liệu
@@ -448,7 +450,7 @@ function fillPrn() {
   if (!cur) sl.add(new Option('— Tuỳ chỉnh, chưa lưu —', ''), 0);
   sl.value = cur;
 }
-const DESIGN_KEYS = ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'rot', 'els'];
+const DESIGN_KEYS = ['w', 'h', 'cols', 'gx', 'ox', 'gy', 'safe', 'rot', 'sym', 'els'];
 const pick = o => Object.fromEntries(DESIGN_KEYS.filter(k => k in o).map(k => [k, structuredClone(o[k])]));
 let saved = {}; try { saved = JSON.parse(localStorage.temProfiles || '{}'); } catch {}
 const saveProfiles = () => { try { localStorage.temProfiles = JSON.stringify(saved); } catch {} };
@@ -591,9 +593,9 @@ function renderLabel(row, edit) {
   };
   S.els.forEach((e, i) => C.append(build(e, i)));
   // Đối xứng: bản sao xoay 180° quanh tâm tem, tự theo phần tử gốc
-  if (S.els.some(e => e.mirror)) {
+  if (S.sym) {
     const M = document.createElement('div'); M.className = 'mir';
-    S.els.forEach((e, i) => { if (e.mirror) M.append(build(e, i, true)); });
+    S.els.forEach((e, i) => M.append(build(e, i, true)));
     C.append(M);
   }
   return L;
@@ -696,7 +698,7 @@ function drawProps() {
   const tl = document.createElement('label'); tl.append('Loại phần tử', ts); P.append(tl);
   for (const k of FIELDS[e.type]) {
     let inp;
-    if (k === 'bold' || k === 'showText' || k === 'fit' || k === 'mirror') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
+    if (k === 'bold' || k === 'showText' || k === 'fit') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
     else if (k === 'align' || k === 'format') {
       inp = document.createElement('select');
       (k === 'align' ? [['left', 'Trái'], ['center', 'Giữa'], ['right', 'Phải']] : FORMATS.map(f => [f, f]))
@@ -919,11 +921,13 @@ $('w').value = S.w; $('h').value = S.h; $('csv').value = S.csv; $('copies').valu
 $('w').oninput = () => { S.w = +$('w').value || S.w; drawEditor(); save(); };
 $('h').oninput = () => { S.h = +$('h').value || S.h; drawEditor(); save(); };
 $('rot').value = S.rot;
+$('sym').checked = !!S.sym;
+$('sym').onchange = () => { S.sym = $('sym').checked; drawEditor(); save(); };
 $('rot').onchange = () => { S.rot = +$('rot').value; drawEditor(); save(); };
 fillTpls();
 $('tplSel').onchange = () => {
   const t = saved[$('tplSel').value] || TEMPLATES[$('tplSel').value]; if (!t) return;
-  Object.assign(S, structuredClone(t)); sel = 0;
+  Object.assign(S, structuredClone(t)); S.sym = !!t.sym; sel = 0;
   syncInputs(); drawProps(); drawEditor(); save();
 };
 $('tplSave').onclick = () => {

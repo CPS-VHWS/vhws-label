@@ -54,7 +54,7 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 - 09/11/2026 · Tự thu nhỏ chữ cho lọt khung: chữ/khung dài quá thì giảm cỡ dần (tối đa còn 50%), tắt/bật từng phần tử bằng ô "Tự thu nhỏ chữ…"
 - 09/11/2026 · Tự thu nhỏ tính cả vùng an toàn (kể cả chữ xoay). Báo danh sách tem oversize ở phần Dữ liệu: dòng đỏ trong bảng, tick từng dòng tự thu nhỏ / giữ cỡ gốc để sửa tay, nút Tự thu nhỏ tất cả / Tắt hết
 - 09/11/2026 · Hướng dẫn: thêm mục Chữ quá dài (tự thu nhỏ, danh sách tem oversize, viền cam/đỏ ở xem trước)
-- 09/11/2026 · Tick "Tự tạo bản đối xứng" ở từng phần tử: làm 1 bên, bên kia tự hiện (xoay 180° quanh tâm tem). Sửa kéo chữ xoay dọc bị kẹt; ẩn khung đo chữ khi in
+- 09/11/2026 · Chế độ ⇄ Đối xứng trên thanh công cụ: thiết kế 1 bên, bên kia tự hiện (xoay 180° quanh tâm tem), lưu kèm mẫu ★. Sửa kéo chữ xoay dọc bị kẹt; ẩn khung đo chữ khi in
 
 ## Chưa làm
 
