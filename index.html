@@ -83,6 +83,8 @@
   .liner .label.ovs { box-shadow: inset 0 0 0 0.5mm #f59e0b; }
   .ovtag { position: absolute; right: 0; top: 0; font: 600 2.4mm Arial, sans-serif; color: #fff; padding: 0.3mm 1mm; border-radius: 0 0 0 1mm; }
   .ovr .ovtag { background: #ef4444; } .ovs .ovtag { background: #f59e0b; }
+  .fmt button { min-width: 34px; padding: 6px 8px; }
+  .fmt button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
   #over { font-size: 12.5px; border: 1px solid #ef4444; border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; }
   #over[hidden] { display: none; }
   #over .oh { color: #ef4444; font-weight: 600; }
@@ -333,6 +335,13 @@
     </ul>
   </div>
 
+  <h4>Chỉnh chữ trên tem</h4>
+  <ul>
+    <li>Bấm <b>đúp</b> vào chữ / khung trên tem để gõ trực tiếp (Enter hoặc bấm ra ngoài là xong). Vẫn gõ được <code>{Tên cột}</code>.</li>
+    <li>Chọn ô chữ, khung bên phải có: <b>B</b> in đậm, <i>I</i> in nghiêng, <u>U</u> gạch chân, căn trái / giữa / phải / đều 2 bên, cỡ chữ (pt), phông chữ, giãn dòng.</li>
+    <li>Máy in nhiệt chỉ in đen trắng. Chữ mảnh, nghiêng hoặc phông lạ dưới 5.5 pt dễ nhoè: nên dùng in đậm, phông Arial / mặc định.</li>
+  </ul>
+
   <h4>Chế độ đối xứng (2 chữ / 2 QR đối xứng nhau)</h4>
   <p>Chọn ô <b>Đối xứng</b> trên thanh công cụ phía trên tem. Chỉ cần thiết kế 1 bên, mọi phần tử tự có bản sao bên kia, tự theo khi bạn kéo, đổi chữ, đổi cỡ:</p>
   <ul>
@@ -375,12 +384,12 @@ const FORMATS = ['CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39', 'ITF14'];
 const NAMES = { text: 'Chữ', barcode: 'Mã vạch', qr: 'QR', box: 'Khung' };
 const TYPE_DEF = { text: { size: 8, bold: false, align: 'left' }, barcode: { format: 'CODE128', h: 10, showText: true, size: 7 }, qr: {}, box: { h: 15, size: 6.5 } };
 const FIELDS = {
-  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'wrap', 'bold', 'align', 'r'],
+  text: ['text', 'x', 'y', 'w', 'size', 'fmt', 'font', 'lh', 'fit', 'wrap', 'r'],
   barcode: ['text', 'format', 'x', 'y', 'w', 'h', 'showText', 'size', 'r'],
   qr: ['text', 'x', 'y', 'w', 'r'],
   box: ['text', 'x', 'y', 'w', 'h', 'size', 'fit', 'r'],
 };
-const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', wrap: 'Cho xuống 2 dòng khi chữ dài (ưu tiên hơn thu nhỏ)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
+const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', font: 'Phông chữ', lh: 'Giãn dòng (1 = sát, 1.1 mặc định)', wrap: 'Cho xuống 2 dòng khi chữ dài (ưu tiên hơn thu nhỏ)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
   bold: 'In đậm', align: 'Căn lề', format: 'Chuẩn mã', showText: 'Hiện số dưới mã', r: 'Xoay (°)' };
 // Mẫu có sẵn — chọn trong "Mẫu tem" rồi bấm Mở, sau đó vẫn kéo thả chỉnh được
 const TEMPLATES = {
@@ -507,16 +516,19 @@ function barSvg(v, e) {
 // Không vừa thì dùng cỡ nhỏ nhất, xuống dòng. Có nhớ kết quả để in hàng nghìn tem vẫn nhanh.
 const fitCache = new Map();
 let fitHost;
+const FONTS = [['', 'Mặc định (Arial Narrow)'], ['Arial', 'Arial'], ['Verdana', 'Verdana'], ['Tahoma', 'Tahoma'], ['Times New Roman', 'Times New Roman'], ['Georgia', 'Georgia'], ['Courier New', 'Courier New (đều nét)']];
+// Kiểu chữ chung cho tem và phép đo thu nhỏ: đậm, nghiêng, gạch chân, căn lề, phông, giãn dòng
+const textStyle = e => ({ fontWeight: e.bold ? 700 : 400, fontStyle: e.italic ? 'italic' : 'normal', textDecoration: e.under ? 'underline' : 'none', textAlign: e.align, fontFamily: e.font ? `"${e.font}", Arial, sans-serif` : '', lineHeight: e.lh || '' });
 function fitSize(e, v) {
   const [dw, dh] = dims(), rr = (((e.r || 0) % 360) + 360) % 360;
-  const key = [e.type, v, e.size, e.bold, e.w, e.h, e.x, e.y, e.align, e.wrap, rr, dw, dh, S.safe].join('|');
+  const key = [e.type, v, e.size, e.bold, e.w, e.h, e.x, e.y, e.align, e.wrap, e.italic, e.font, e.lh, rr, dw, dh, S.safe].join('|');
   let res = fitCache.get(key);
   if (res) return res;
   if (!fitHost) { fitHost = document.createElement('div'); fitHost.className = 'label'; fitHost.id = 'fitHost'; fitHost.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;width:300mm;height:300mm'; document.body.append(fitHost); }
   const m = document.createElement('div'); m.className = 'el'; m.textContent = v;
   const line = e.type === 'text';
   Object.assign(m.style, { left: 0, top: 0, width: e.w + 'mm' });
-  if (line) Object.assign(m.style, { fontWeight: e.bold ? 700 : 400, whiteSpace: 'nowrap' });
+  if (line) Object.assign(m.style, textStyle(e), { textAlign: 'left', whiteSpace: 'nowrap' });
   else Object.assign(m.style, { height: e.h + 'mm', border: '0.35mm solid #000', fontWeight: 700, textAlign: 'center', paddingTop: '1mm' });
   fitHost.append(m);
   const min = Math.max(4, e.size / 2);
@@ -541,7 +553,7 @@ function fitSize(e, v) {
     // xuống dòng (tối đa 2 dòng): khung rộng e.w, cao theo số dòng; phải nằm trong vùng an toàn cả 2 hướng
     m.style.whiteSpace = 'normal';
     const h2 = m.offsetHeight / PX;
-    if (h2 > 2 * z * 1.1 * 25.4 / 72 + 0.3) return 0;
+    if (h2 > 2 * z * (e.lh || 1.1) * 25.4 / 72 + 0.3) return 0;
     const cross = rr === 0 || rr === 180 ? [e.y, e.y + h2, dh] : [e.x + e.w / 2 - h2 / 2, e.x + e.w / 2 + h2 / 2, dw];
     if (cross[0] < S.safe - 0.05 || cross[1] > cross[2] - S.safe + 0.05) return 0;
     return along(e.w, h2, 0) ? 2 : 0;
@@ -591,7 +603,7 @@ function renderLabel(row, edit) {
     Object.assign(n.style, { left: e.x + 'mm', top: e.y + 'mm', width: e.w + 'mm' });
     if (e.type === 'text') {
       n.textContent = v;
-      Object.assign(n.style, { fontSize: e.size + 'pt', fontWeight: e.bold ? 700 : 400, textAlign: e.align });
+      Object.assign(n.style, { fontSize: e.size + 'pt' }, textStyle(e));
       if (e.fit !== false && v && !noFit.has(row)) { const f = fitSize(e, v); n.style.fontSize = f.size + 'pt'; if (f.nowrap) n.style.whiteSpace = 'nowrap'; }
     } else if (e.type === 'qr') {
       n.style.height = e.w + 'mm';
@@ -726,14 +738,23 @@ function drawProps() {
   };
   const tl = document.createElement('label'); tl.append('Loại phần tử', ts); P.append(tl);
   for (const k of FIELDS[e.type]) {
+    if (k === 'fmt') { // B / I / U và căn lề
+      const row = document.createElement('div'); row.className = 'btns fmt';
+      const mk = (txt, title, on, fn, st) => { const b = Object.assign(document.createElement('button'), { textContent: txt, title, className: on ? 'on' : '' }); if (st) b.style.cssText = st; b.onclick = () => { fn(); drawProps(); drawEditor(); save(); }; return b; };
+      row.append(mk('B', 'In đậm', e.bold, () => e.bold = !e.bold, 'font-weight:700'), mk('I', 'In nghiêng', e.italic, () => e.italic = !e.italic, 'font-style:italic'), mk('U', 'Gạch chân', e.under, () => e.under = !e.under, 'text-decoration:underline'));
+      for (const [v, t, tt] of [['left', '⇤', 'Căn trái'], ['center', '↔', 'Căn giữa'], ['right', '⇥', 'Căn phải'], ['justify', '☰', 'Căn đều 2 bên']]) row.append(mk(t, tt, (e.align || 'left') === v, () => e.align = v));
+      P.append(row); continue;
+    }
     let inp;
-    if (k === 'bold' || k === 'showText' || k === 'fit' || k === 'wrap') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
+    if (k === 'font') {
+      inp = document.createElement('select'); FONTS.forEach(([v, t]) => inp.add(new Option(t, v))); inp.value = e.font || '';
+    } else if (k === 'bold' || k === 'showText' || k === 'fit' || k === 'wrap') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
     else if (k === 'align' || k === 'format') {
       inp = document.createElement('select');
       (k === 'align' ? [['left', 'Trái'], ['center', 'Giữa'], ['right', 'Phải']] : FORMATS.map(f => [f, f]))
         .forEach(([v, t]) => inp.add(new Option(t, v)));
       inp.value = e[k];
-    } else inp = Object.assign(document.createElement('input'), { type: k === 'text' ? 'text' : 'number', step: k === 'r' ? 15 : 0.5, value: e[k] ?? 0 });
+    } else inp = Object.assign(document.createElement('input'), { type: k === 'text' ? 'text' : 'number', step: k === 'r' ? 15 : k === 'lh' ? 0.05 : 0.5, value: e[k] ?? (k === 'lh' ? 1.1 : 0) });
     inp.id = 'p_' + k;
     inp.oninput = inp.onchange = () => {
       e[k] = inp.type === 'checkbox' ? inp.checked : k === 'r' ? Math.round(+inp.value / 15) * 15 : inp.type === 'number' ? +inp.value : inp.value;
@@ -749,7 +770,7 @@ function drawProps() {
       })));
       P.append(b);
     }
-    if (k === 'text') P.append(Object.assign(document.createElement('div'), { className: 'hint', textContent: 'Gõ {Tên cột} để lấy dữ liệu từ Excel, ví dụ {QR2}. Chữ ngoài ngoặc in y nguyên.' }));
+    if (k === 'text') P.append(Object.assign(document.createElement('div'), { className: 'hint', textContent: 'Gõ {Tên cột} để lấy dữ liệu từ Excel, ví dụ {QR2}. Chữ ngoài ngoặc in y nguyên. Bấm đúp vào chữ trên tem để gõ trực tiếp.' }));
     if (k === 'text' && (cols.length || need().length)) {
       const c = document.createElement('div'); c.className = 'chips';
       for (const col of new Set([...cols, ...need()])) c.append(Object.assign(document.createElement('button'), {
@@ -950,6 +971,19 @@ $('w').value = S.w; $('h').value = S.h; $('csv').value = S.csv; $('copies').valu
 $('w').oninput = () => { S.w = +$('w').value || S.w; drawEditor(); save(); };
 $('h').oninput = () => { S.h = +$('h').value || S.h; drawEditor(); save(); };
 $('rot').value = S.rot;
+// Bấm đúp chữ / khung trên tem để gõ trực tiếp (Enter hoặc bấm ra ngoài để xong)
+$('stage').ondblclick = ev => {
+  const els = [...$('stage').querySelectorAll('.el')].slice(0, S.els.length);
+  const n = els.reverse().find(x => { const r = x.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom; });
+  if (!n) return;
+  const i = S.els.length - 1 - els.indexOf(n), e = S.els[i];
+  if (!e || (e.type !== 'text' && e.type !== 'box')) return;
+  sel = i; n.textContent = e.text; n.contentEditable = 'plaintext-only'; n.style.cursor = 'text';
+  n.onpointerdown = x => x.stopPropagation();
+  n.focus(); getSelection().selectAllChildren(n);
+  n.onkeydown = k => { k.stopPropagation(); if (k.key === 'Enter' || k.key === 'Escape') { k.preventDefault(); n.blur(); } };
+  n.onblur = () => { n.onblur = null; e.text = n.textContent.replace(/\s*\n\s*/g, ' '); drawProps(); drawEditor(); save(); };
+};
 $('sym').value = S.sym === true ? 'c' : S.sym || '';
 $('sym').onchange = () => { S.sym = $('sym').value || false; drawEditor(); save(); };
 $('rot').onchange = () => { S.rot = +$('rot').value; drawEditor(); save(); };

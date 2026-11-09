@@ -56,6 +56,7 @@ Web app thiết kế và in tem cho máy in nhiệt TSC. Một file `index.html`
 - 09/11/2026 · Hướng dẫn: thêm mục Chữ quá dài (tự thu nhỏ, danh sách tem oversize, viền cam/đỏ ở xem trước)
 - 09/11/2026 · Chế độ Đối xứng (tâm / ngang / dọc) trên thanh công cụ: thiết kế 1 bên, bên kia tự hiện (xoay 180° quanh tâm tem), lưu kèm mẫu ★. Sửa kéo chữ xoay dọc bị kẹt; ẩn khung đo chữ khi in
 - 09/11/2026 · Ô chữ có tick "Cho xuống 2 dòng khi chữ dài": ưu tiên xuống dòng, không lọt vùng an toàn mới thu nhỏ
+- 09/11/2026 · Ô chữ: in nghiêng, gạch chân, căn đều 2 bên, chọn phông, giãn dòng; bấm đúp chữ trên tem để gõ trực tiếp
 
 ## Chưa làm
 
