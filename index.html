@@ -328,6 +328,15 @@
     </ul>
   </div>
 
+  <h4>Chữ quá dài (import dữ liệu bị tràn)</h4>
+  <ul>
+    <li>Phần tử Chữ / Khung có ô <b>Tự thu nhỏ chữ cho lọt khung</b> (mặc định bật): chữ dài quá thì app giảm cỡ dần, tối đa còn <b>50%</b>, cho vừa 1 dòng trong khung và trong vùng an toàn. Dòng ngắn giữ nguyên cỡ.</li>
+    <li>Ở phần <b>Dữ liệu</b> có khung đỏ liệt kê các tem bị dài: dòng nào, chữ nào, cỡ gốc → cỡ sau khi thu nhỏ. Dòng đó cũng đỏ ở cột <b>#</b> của bảng. Bấm <b>Xem</b> để mở tem đó.</li>
+    <li><b>Tick</b> từng dòng = tự thu nhỏ; <b>bỏ tick</b> = giữ cỡ gốc để tự rút gọn chữ trong bảng. Có nút <b>Tự thu nhỏ tất cả</b> / <b>Tắt hết</b>. Đổi số dòng dữ liệu thì các tick tắt được xoá.</li>
+    <li><b>Xem trước bản in</b>: tem viền cam <i>"đã thu nhỏ chữ"</i>, tem viền đỏ <i>"⚠ chữ tràn"</i> (đã tắt tự thu nhỏ, hoặc thu nhỏ hết cỡ vẫn không lọt → nên rút gọn chữ). Viền chỉ hiện trên màn hình, không in ra tem.</li>
+    <li>Chữ tự thu nhỏ có thể xuống dưới 5.5 pt: soát tem cam trước khi in, chữ quá nhỏ thì rút gọn nội dung. QR và mã vạch không tự thu nhỏ.</li>
+  </ul>
+
   <h4>Lỗi hay gặp</h4>
   <ul>
     <li><b>Tem lệch ngang / dọc</b>: mở <i>Máy in &amp; khổ tem</i> ở cột trái, chỉnh <i>Lệch ngang</i> (+ = sang phải) / <i>Lệch dọc</i> (+ = xuống) mỗi lần 0.5 mm, in thử lại. Không sửa khổ giấy trong driver.</li>
