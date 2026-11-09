@@ -79,6 +79,17 @@
   .guide td:first-child { font-weight: 700; white-space: nowrap; width: 1%; }
   .guide .note { border: 1px solid #f59e0b; background: color-mix(in srgb, #f59e0b 10%, transparent); border-radius: 10px; padding: 4px 14px 10px; }
   #stage .el.out { outline: 1.5px solid #ef4444; }
+  .liner .label.ovr { box-shadow: inset 0 0 0 0.5mm #ef4444; }
+  .liner .label.ovs { box-shadow: inset 0 0 0 0.5mm #f59e0b; }
+  .ovtag { position: absolute; right: 0; top: 0; font: 600 2.4mm Arial, sans-serif; color: #fff; padding: 0.3mm 1mm; border-radius: 0 0 0 1mm; }
+  .ovr .ovtag { background: #ef4444; } .ovs .ovtag { background: #f59e0b; }
+  #over { font-size: 12.5px; border: 1px solid #ef4444; border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; }
+  #over[hidden] { display: none; }
+  #over .oh { color: #ef4444; font-weight: 600; }
+  #over .orow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  #over .orow label { flex: 1; min-width: 0; }
+  #over .olist { max-height: 160px; overflow: auto; display: grid; gap: 4px; }
+  #grid tr.over td:first-child { background: #ef4444; color: #fff; font-weight: 700; }
   #safeWarn { color: #ef4444; font-size: 13px; font-weight: 600; }
   .guide h2 { margin: 0 0 8px; font-size: 20px; }
   .guide h4 { margin: 18px 0 6px; font-size: 15px; color: var(--accent); }
@@ -153,6 +164,7 @@
       <input id="file" type="file" accept=".csv,.txt,.xlsx,.xls" hidden>
       Kéo thả file <b>Excel / CSV</b> vào đây<br>hoặc bấm để chọn file
     </label>
+    <div id="over" hidden></div>
     <div class="gridwrap"><table id="grid"></table></div>
     <div class="btns"><button id="addRow">+ Thêm dòng</button><small class="muted" style="align-self:center">Bấm vào ô để sửa · dán nhiều ô từ Excel được</small></div>
     <details class="rawcsv"><summary>Dán cả bảng từ Excel (dạng chữ)</summary>
@@ -339,12 +351,12 @@ const FORMATS = ['CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39', 'ITF14'];
 const NAMES = { text: 'Chữ', barcode: 'Mã vạch', qr: 'QR', box: 'Khung' };
 const TYPE_DEF = { text: { size: 8, bold: false, align: 'left' }, barcode: { format: 'CODE128', h: 10, showText: true, size: 7 }, qr: {}, box: { h: 15, size: 6.5 } };
 const FIELDS = {
-  text: ['text', 'x', 'y', 'w', 'size', 'bold', 'align', 'r'],
+  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'bold', 'align', 'r'],
   barcode: ['text', 'format', 'x', 'y', 'w', 'h', 'showText', 'size', 'r'],
   qr: ['text', 'x', 'y', 'w', 'r'],
-  box: ['text', 'x', 'y', 'w', 'h', 'size', 'r'],
+  box: ['text', 'x', 'y', 'w', 'h', 'size', 'fit', 'r'],
 };
-const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)',
+const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
   bold: 'In đậm', align: 'Căn lề', format: 'Chuẩn mã', showText: 'Hiện số dưới mã', r: 'Xoay (°)' };
 // Mẫu có sẵn — chọn trong "Mẫu tem" rồi bấm Mở, sau đó vẫn kéo thả chỉnh được
 const TEMPLATES = {
@@ -380,7 +392,7 @@ let S; try { S = JSON.parse(localStorage.tem6); } catch {}
 // Bản cũ chưa có Lệch ngang/dọc: máy đã căn bằng Lề giấy 3.5 thì chuyển thành Lề 2.5 + Lệch ngang 1 (in ra y hệt, khổ giấy về đúng 87 mm)
 if (S && !('dx' in S)) { S.dx = 0; S.dy = 0; if (S.ox === 3.5) { S.ox = 2.5; S.dx = 1; } }
 S = { ...structuredClone(DEF), ...S };
-let sel = 0, rows = [], cols = [], pv = 0, Z = 1;
+let sel = 0, rows = [], cols = [], pv = 0, Z = 1, noFit = new Set(); // noFit: các dòng tắt tự thu nhỏ (S.nofit = số thứ tự dòng)
 // Hoàn tác: mỗi lần lưu mà thiết kế đổi thì cất bản cũ; thay đổi liên tiếp < 0.8s (gõ phím, giữ mũi tên) gộp thành 1 bước
 const snapOf = () => JSON.stringify({ ...S, csv: undefined });
 let hist = [], fut = [], last, lastT = 0;
@@ -466,6 +478,60 @@ function barSvg(v, e) {
   } catch { return Object.assign(document.createElement('span'), { textContent: 'Mã lỗi: ' + v }); }
 }
 
+// Tự thu nhỏ chữ: giảm cỡ dần (tối thiểu 50%) cho chữ vừa 1 dòng trong khung VÀ nằm trong vùng an toàn của tem.
+// Không vừa thì dùng cỡ nhỏ nhất, xuống dòng. Có nhớ kết quả để in hàng nghìn tem vẫn nhanh.
+const fitCache = new Map();
+let fitHost;
+function fitSize(e, v) {
+  const [dw, dh] = dims(), rr = (((e.r || 0) % 360) + 360) % 360;
+  const key = [e.type, v, e.size, e.bold, e.w, e.h, e.x, e.y, e.align, rr, dw, dh, S.safe].join('|');
+  let res = fitCache.get(key);
+  if (res) return res;
+  if (!fitHost) { fitHost = document.createElement('div'); fitHost.className = 'label'; fitHost.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;width:300mm;height:300mm'; document.body.append(fitHost); }
+  const m = document.createElement('div'); m.className = 'el'; m.textContent = v;
+  const line = e.type === 'text';
+  Object.assign(m.style, { left: 0, top: 0, width: e.w + 'mm' });
+  if (line) Object.assign(m.style, { fontWeight: e.bold ? 700 : 400, whiteSpace: 'nowrap' });
+  else Object.assign(m.style, { height: e.h + 'mm', border: '0.35mm solid #000', fontWeight: 700, textAlign: 'center', paddingTop: '1mm' });
+  fitHost.append(m);
+  const min = Math.max(4, e.size / 2);
+  const ok = () => {
+    if (!line) return m.scrollWidth <= m.clientWidth + 1 && m.scrollHeight <= m.clientHeight + 1;
+    m.style.width = 'max-content';
+    const tw = m.offsetWidth / PX, th = m.offsetHeight / PX;
+    m.style.width = e.w + 'mm';
+    if (tw > e.w + 0.05) return false;
+    const u = e.align === 'center' ? (e.w - tw) / 2 : e.align === 'right' ? e.w - tw : 0; // vị trí chữ trong khung
+    let a, lim;
+    if (rr === 0) [a, lim] = [e.x + u, dw];
+    else if (rr === 180) [a, lim] = [e.x + e.w - u - tw, dw];
+    else if (rr === 90) [a, lim] = [e.y + th / 2 - e.w / 2 + u, dh];
+    else if (rr === 270) [a, lim] = [e.y + th / 2 + e.w / 2 - u - tw, dh];
+    else return true;
+    return a >= S.safe - 0.05 && a + tw <= lim - S.safe + 0.05;
+  };
+  for (let z = e.size; z >= min - 1e-6; z -= 0.25) { m.style.fontSize = z + 'pt'; if (ok()) { res = { size: z, nowrap: line, ok: true }; break; } }
+  m.remove();
+  res ||= { size: min, nowrap: false, ok: false };
+  fitCache.set(key, res);
+  return res;
+}
+// Tem nào có chữ/khung quá dài (phải thu nhỏ hoặc thu nhỏ hết cỡ vẫn không lọt)
+function overRows() {
+  const out = [];
+  rows.forEach((r, i) => {
+    const hits = [];
+    for (const e of S.els) {
+      if (e.type !== 'text' && e.type !== 'box') continue;
+      const v = fill(e.text, r); if (!v) continue;
+      const f = fitSize(e, v);
+      if (f.size < e.size - 1e-6 || !f.ok) hits.push({ e, v, f });
+    }
+    if (hits.length) out.push({ i, hits });
+  });
+  return out;
+}
+
 function renderLabel(row, edit) {
   const [dw, dh] = dims();
   const L = document.createElement('div'); L.className = 'label';
@@ -489,6 +555,7 @@ function renderLabel(row, edit) {
     if (e.type === 'text') {
       n.textContent = v;
       Object.assign(n.style, { fontSize: e.size + 'pt', fontWeight: e.bold ? 700 : 400, textAlign: e.align });
+      if (e.fit !== false && v && !noFit.has(row)) { const f = fitSize(e, v); n.style.fontSize = f.size + 'pt'; if (f.nowrap) n.style.whiteSpace = 'nowrap'; }
     } else if (e.type === 'qr') {
       n.style.height = e.w + 'mm';
       try { if (v) { const q = qrcode(0, 'M'); q.addData(v); q.make(); n.innerHTML = q.createSvgTag({ cellSize: 1, margin: 0, scalable: true }); } }
@@ -496,6 +563,7 @@ function renderLabel(row, edit) {
     } else if (e.type === 'box') {
       n.textContent = v;
       Object.assign(n.style, { height: e.h + 'mm', border: '0.35mm solid #000', fontSize: e.size + 'pt', fontWeight: 700, textAlign: 'center', paddingTop: '1mm' });
+      if (e.fit !== false && v && !noFit.has(row)) n.style.fontSize = fitSize(e, v).size + 'pt';
     } else {
       n.className += ' bc'; n.style.height = e.h + 'mm';
       if (v) {
@@ -604,7 +672,7 @@ function drawProps() {
   const tl = document.createElement('label'); tl.append('Loại phần tử', ts); P.append(tl);
   for (const k of FIELDS[e.type]) {
     let inp;
-    if (k === 'bold' || k === 'showText') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: !!e[k] });
+    if (k === 'bold' || k === 'showText' || k === 'fit') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
     else if (k === 'align' || k === 'format') {
       inp = document.createElement('select');
       (k === 'align' ? [['left', 'Trái'], ['center', 'Giữa'], ['right', 'Phải']] : FORMATS.map(f => [f, f]))
@@ -655,6 +723,8 @@ function loadData(keepGrid) {
   const a = parseCSV(S.csv);
   cols = (a[0] || []).map(s => s.trim());
   rows = a.slice(1).map(r => Object.fromEntries(cols.map((c, i) => [c, (r[i] ?? '').trim()])));
+  if (S.nofit?.length && rows.length !== S.nofitN) S.nofit = []; // dữ liệu đổi số dòng thì bỏ lựa chọn cũ
+  S.nofitN = rows.length; noFit = new Set((S.nofit || []).map(i => rows[i]));
   pv = Math.min(pv, Math.max(0, rows.length - 1));
   $('pv').max = rows.length; $('pv').value = pv + 1; $('pvn').textContent = '/ ' + rows.length;
   updInfo();
@@ -741,17 +811,54 @@ function downloadSample() {
 
 function buildLabels(limit) {
   const all = [];
-  for (const r of rows.length ? rows : [{}]) for (let i = 0; i < qty(r) && all.length < limit; i++) all.push(renderLabel(r, false));
+  (rows.length ? rows : [{}]).forEach((r, ri) => { for (let i = 0; i < qty(r) && all.length < limit; i++) { const L = renderLabel(r, false); L.dataset.row = ri; all.push(L); } });
   return all;
 }
 
 // Xem trước: vẽ đúng các hàng tem sẽ in trên nền giấy đế (tối đa 6 hàng đầu), trễ 150ms để kéo thả không giật
 let pvT;
 const schedPreview = () => { clearTimeout(pvT); pvT = setTimeout(drawPreview, 150); };
+function drawOver() {
+  const ov = overRows(), box = $('over');
+  document.querySelectorAll('#grid tbody tr').forEach((tr, i) => tr.classList.toggle('over', ov.some(o => o.i === i)));
+  box.hidden = !ov.length;
+  if (!ov.length) return;
+  const off = ov.filter(o => noFit.has(rows[o.i])).length, bad = ov.filter(o => o.hits.some(h => !h.f.ok)).length;
+  const setAll = on => { S.nofit = on ? [] : ov.map(o => o.i); noFit = new Set(S.nofit.map(i => rows[i])); drawEditor(); drawOver(); save(); };
+  const head = document.createElement('div'); head.className = 'oh';
+  head.textContent = `⚠ ${ov.length} tem có chữ quá dài so với khung / vùng an toàn` + (bad ? ` (${bad} tem thu nhỏ hết cỡ vẫn không lọt — nên rút gọn chữ)` : '');
+  const bt = document.createElement('div'); bt.className = 'btns';
+  bt.append(Object.assign(document.createElement('button'), { textContent: 'Tự thu nhỏ tất cả', onclick: () => setAll(true) }),
+    Object.assign(document.createElement('button'), { textContent: 'Tắt hết (tự sửa tay)', onclick: () => setAll(false) }));
+  const list = document.createElement('div'); list.className = 'olist';
+  for (const o of ov) {
+    const r = document.createElement('div'); r.className = 'orow';
+    const cb = Object.assign(document.createElement('input'), { type: 'checkbox', checked: !noFit.has(rows[o.i]) });
+    cb.onchange = () => {
+      const set = new Set(S.nofit || []); cb.checked ? set.delete(o.i) : set.add(o.i);
+      S.nofit = [...set]; noFit = new Set(S.nofit.map(i => rows[i])); drawEditor(); schedPreview(); save();
+    };
+    const l = document.createElement('label'); l.className = 'chk';
+    l.append(cb, `Dòng ${o.i + 1}: ` + o.hits.map(h => `"${h.v.length > 24 ? h.v.slice(0, 22) + '…' : h.v}" ${h.e.size}→${h.f.ok ? h.f.size : h.f.size + ' (vẫn tràn)'}pt`).join(' · '));
+    const go = Object.assign(document.createElement('button'), { textContent: 'Xem', onclick: () => { pv = o.i; $('pv').value = pv + 1; drawEditor(); } });
+    r.append(l, go); list.append(r);
+  }
+  const hint = Object.assign(document.createElement('small'), { textContent: 'Tick = tự thu nhỏ chữ dòng đó. Bỏ tick = giữ cỡ gốc, tự sửa tay trong bảng dữ liệu (dòng báo đỏ ở cột #). Tắt hẳn: bỏ tick "Tự thu nhỏ" ở phần tử.' });
+  box.replaceChildren(head, bt, list, hint);
+}
 function drawPreview() {
+  drawOver();
   const box = $('rollPreview'); if (!box.clientWidth) return;
   const n = Math.max(1, S.cols | 0), MAX = 6, pw = 2 * S.ox + n * S.w + (n - 1) * S.gx;
   const all = buildLabels(n * MAX), total = rows.length ? rows.reduce((s, r) => s + qty(r), 0) : qty();
+  // Đánh dấu trên bản xem trước (không có khi in): đỏ = đang tràn, cam = đã tự thu nhỏ
+  const ov = new Map(overRows().map(o => [o.i, o]));
+  all.forEach(L => {
+    const o = ov.get(+L.dataset.row); if (!o) return;
+    const bad = noFit.has(rows[o.i]) || o.hits.some(h => !h.f.ok);
+    L.classList.add(bad ? 'ovr' : 'ovs');
+    L.append(Object.assign(document.createElement('span'), { className: 'ovtag', textContent: bad ? '⚠ chữ tràn' : 'đã thu nhỏ chữ' }));
+  });
   const liner = document.createElement('div'); liner.className = 'liner';
   Object.assign(liner.style, { width: pw + 'mm', padding: `${S.gy}mm ${S.ox}mm`, gap: S.gy + 'mm' });
   for (let i = 0; i < all.length; i += n) {
