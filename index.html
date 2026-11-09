@@ -339,6 +339,7 @@
     <li>Ở phần <b>Dữ liệu</b> có khung đỏ liệt kê các tem bị dài: dòng nào, chữ nào, cỡ gốc → cỡ sau khi thu nhỏ. Dòng đó cũng đỏ ở cột <b>#</b> của bảng. Bấm <b>Xem</b> để mở tem đó.</li>
     <li><b>Tick</b> từng dòng = tự thu nhỏ; <b>bỏ tick</b> = giữ cỡ gốc để tự rút gọn chữ trong bảng. Có nút <b>Tự thu nhỏ tất cả</b> / <b>Tắt hết</b>. Đổi số dòng dữ liệu thì các tick tắt được xoá.</li>
     <li><b>Xem trước bản in</b>: tem viền cam <i>"đã thu nhỏ chữ"</i>, tem viền đỏ <i>"⚠ chữ tràn"</i> (đã tắt tự thu nhỏ, hoặc thu nhỏ hết cỡ vẫn không lọt → nên rút gọn chữ). Viền chỉ hiện trên màn hình, không in ra tem.</li>
+    <li>Muốn chữ dài <b>xuống dòng</b> thay vì bị nhỏ đi: chọn ô chữ, tick <b>Cho xuống 2 dòng khi chữ dài</b>. App thử vừa 1 dòng trước, không vừa thì xuống tối đa 2 dòng ở cỡ chữ đã đặt, vẫn không lọt vùng an toàn thì mới thu nhỏ dần. Tem nào xuống dòng / thu nhỏ vẫn hiện trong khung đỏ ở phần Dữ liệu.</li>
     <li>Chữ tự thu nhỏ có thể xuống dưới 5.5 pt: soát tem cam trước khi in, chữ quá nhỏ thì rút gọn nội dung. QR và mã vạch không tự thu nhỏ.</li>
   </ul>
 
@@ -365,12 +366,12 @@ const FORMATS = ['CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39', 'ITF14'];
 const NAMES = { text: 'Chữ', barcode: 'Mã vạch', qr: 'QR', box: 'Khung' };
 const TYPE_DEF = { text: { size: 8, bold: false, align: 'left' }, barcode: { format: 'CODE128', h: 10, showText: true, size: 7 }, qr: {}, box: { h: 15, size: 6.5 } };
 const FIELDS = {
-  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'bold', 'align', 'r'],
+  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'wrap', 'bold', 'align', 'r'],
   barcode: ['text', 'format', 'x', 'y', 'w', 'h', 'showText', 'size', 'r'],
   qr: ['text', 'x', 'y', 'w', 'r'],
   box: ['text', 'x', 'y', 'w', 'h', 'size', 'fit', 'r'],
 };
-const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
+const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', wrap: 'Cho xuống 2 dòng khi chữ dài (ưu tiên hơn thu nhỏ)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
   bold: 'In đậm', align: 'Căn lề', format: 'Chuẩn mã', showText: 'Hiện số dưới mã', r: 'Xoay (°)' };
 // Mẫu có sẵn — chọn trong "Mẫu tem" rồi bấm Mở, sau đó vẫn kéo thả chỉnh được
 const TEMPLATES = {
@@ -499,7 +500,7 @@ const fitCache = new Map();
 let fitHost;
 function fitSize(e, v) {
   const [dw, dh] = dims(), rr = (((e.r || 0) % 360) + 360) % 360;
-  const key = [e.type, v, e.size, e.bold, e.w, e.h, e.x, e.y, e.align, rr, dw, dh, S.safe].join('|');
+  const key = [e.type, v, e.size, e.bold, e.w, e.h, e.x, e.y, e.align, e.wrap, rr, dw, dh, S.safe].join('|');
   let res = fitCache.get(key);
   if (res) return res;
   if (!fitHost) { fitHost = document.createElement('div'); fitHost.className = 'label'; fitHost.id = 'fitHost'; fitHost.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;width:300mm;height:300mm'; document.body.append(fitHost); }
@@ -510,13 +511,8 @@ function fitSize(e, v) {
   else Object.assign(m.style, { height: e.h + 'mm', border: '0.35mm solid #000', fontWeight: 700, textAlign: 'center', paddingTop: '1mm' });
   fitHost.append(m);
   const min = Math.max(4, e.size / 2);
-  const ok = () => {
-    if (!line) return m.scrollWidth <= m.clientWidth + 1 && m.scrollHeight <= m.clientHeight + 1;
-    m.style.width = 'max-content';
-    const tw = m.offsetWidth / PX, th = m.offsetHeight / PX;
-    m.style.width = e.w + 'mm';
-    if (tw > e.w + 0.05) return false;
-    const u = e.align === 'center' ? (e.w - tw) / 2 : e.align === 'right' ? e.w - tw : 0; // vị trí chữ trong khung
+  // Kiểm 1 cỡ chữ: trả 1 = vừa 1 dòng, 2 = vừa khi xuống 2 dòng (nếu cho phép), 0 = không vừa
+  const along = (tw, th, u) => {
     let a, lim;
     if (rr === 0) [a, lim] = [e.x + u, dw];
     else if (rr === 180) [a, lim] = [e.x + e.w - u - tw, dw];
@@ -525,7 +521,23 @@ function fitSize(e, v) {
     else return true;
     return a >= S.safe - 0.05 && a + tw <= lim - S.safe + 0.05;
   };
-  for (let z = e.size; z >= min - 1e-6; z -= 0.25) { m.style.fontSize = z + 'pt'; if (ok()) { res = { size: z, nowrap: line, ok: true }; break; } }
+  const ok = z => {
+    if (!line) return m.scrollWidth <= m.clientWidth + 1 && m.scrollHeight <= m.clientHeight + 1 ? 1 : 0;
+    m.style.whiteSpace = 'nowrap'; m.style.width = 'max-content';
+    const tw = m.offsetWidth / PX, th = m.offsetHeight / PX;
+    m.style.width = e.w + 'mm';
+    const u = e.align === 'center' ? (e.w - tw) / 2 : e.align === 'right' ? e.w - tw : 0; // vị trí chữ trong khung
+    if (tw <= e.w + 0.05 && along(tw, th, u)) return 1;
+    if (!e.wrap) return 0;
+    // xuống dòng (tối đa 2 dòng): khung rộng e.w, cao theo số dòng; phải nằm trong vùng an toàn cả 2 hướng
+    m.style.whiteSpace = 'normal';
+    const h2 = m.offsetHeight / PX;
+    if (h2 > 2 * z * 1.1 * 25.4 / 72 + 0.3) return 0;
+    const cross = rr === 0 || rr === 180 ? [e.y, e.y + h2, dh] : [e.x + e.w / 2 - h2 / 2, e.x + e.w / 2 + h2 / 2, dw];
+    if (cross[0] < S.safe - 0.05 || cross[1] > cross[2] - S.safe + 0.05) return 0;
+    return along(e.w, h2, 0) ? 2 : 0;
+  };
+  for (let z = e.size; z >= min - 1e-6; z -= 0.25) { m.style.fontSize = z + 'pt'; const k = ok(z); if (k) { res = { size: z, nowrap: line && k === 1, ok: true, lines: k }; break; } }
   m.remove();
   res ||= { size: min, nowrap: false, ok: false };
   fitCache.set(key, res);
@@ -540,7 +552,7 @@ function overRows() {
       if (e.type !== 'text' && e.type !== 'box') continue;
       const v = fill(e.text, r); if (!v) continue;
       const f = fitSize(e, v);
-      if (f.size < e.size - 1e-6 || !f.ok) hits.push({ e, v, f });
+      if (f.size < e.size - 1e-6 || !f.ok || f.lines > 1) hits.push({ e, v, f });
     }
     if (hits.length) out.push({ i, hits });
   });
@@ -698,7 +710,7 @@ function drawProps() {
   const tl = document.createElement('label'); tl.append('Loại phần tử', ts); P.append(tl);
   for (const k of FIELDS[e.type]) {
     let inp;
-    if (k === 'bold' || k === 'showText' || k === 'fit') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
+    if (k === 'bold' || k === 'showText' || k === 'fit' || k === 'wrap') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
     else if (k === 'align' || k === 'format') {
       inp = document.createElement('select');
       (k === 'align' ? [['left', 'Trái'], ['center', 'Giữa'], ['right', 'Phải']] : FORMATS.map(f => [f, f]))
@@ -865,7 +877,7 @@ function drawOver() {
       S.nofit = [...set]; noFit = new Set(S.nofit.map(i => rows[i])); drawEditor(); schedPreview(); save();
     };
     const l = document.createElement('label'); l.className = 'chk';
-    l.append(cb, `Dòng ${o.i + 1}: ` + o.hits.map(h => `"${h.v.length > 24 ? h.v.slice(0, 22) + '…' : h.v}" ${h.e.size}→${h.f.ok ? h.f.size : h.f.size + ' (vẫn tràn)'}pt`).join(' · '));
+    l.append(cb, `Dòng ${o.i + 1}: ` + o.hits.map(h => `"${h.v.length > 24 ? h.v.slice(0, 22) + '…' : h.v}" ${h.e.size}→${h.f.ok ? h.f.size : h.f.size + ' (vẫn tràn)'}pt${h.f.lines > 1 ? ' · 2 dòng' : ''}`).join(' · '));
     const go = Object.assign(document.createElement('button'), { textContent: 'Xem', onclick: () => { pv = o.i; $('pv').value = pv + 1; drawEditor(); } });
     r.append(l, go); list.append(r);
   }
