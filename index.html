@@ -133,6 +133,7 @@
   .label { position: relative; overflow: hidden; background: #fff; font-family: "Arial Narrow", Arial, sans-serif; color: #000; }
   .safe { position: absolute; border: 1px dashed #f59e0b; pointer-events: none; }
   .lbl-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .mir { position: absolute; inset: 0; transform: rotate(180deg); pointer-events: none; }
   .el { position: absolute; line-height: 1.1; overflow-wrap: anywhere; }
   .el > svg { width: 100%; height: 100%; display: block; }
   .bc { display: flex; flex-direction: column; align-items: center; }
@@ -328,6 +329,9 @@
     </ul>
   </div>
 
+  <h4>Tem đối xứng (2 chữ / 2 QR quay ngược nhau)</h4>
+  <p>Làm xong 1 bên, chọn phần tử đó, tick <b>Tự tạo bản đối xứng</b> ở khung bên phải: bên kia tự hiện (xoay 180° quanh tâm tem) và tự theo khi bạn kéo, đổi chữ, đổi cỡ. Bản đối xứng chỉ hiện để xem, muốn sửa thì sửa phần tử gốc.</p>
+
   <h4>Chữ quá dài (import dữ liệu bị tràn)</h4>
   <ul>
     <li>Phần tử Chữ / Khung có ô <b>Tự thu nhỏ chữ cho lọt khung</b> (mặc định bật): chữ dài quá thì app giảm cỡ dần, tối đa còn <b>50%</b>, cho vừa 1 dòng trong khung và trong vùng an toàn. Dòng ngắn giữ nguyên cỡ.</li>
@@ -360,12 +364,12 @@ const FORMATS = ['CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39', 'ITF14'];
 const NAMES = { text: 'Chữ', barcode: 'Mã vạch', qr: 'QR', box: 'Khung' };
 const TYPE_DEF = { text: { size: 8, bold: false, align: 'left' }, barcode: { format: 'CODE128', h: 10, showText: true, size: 7 }, qr: {}, box: { h: 15, size: 6.5 } };
 const FIELDS = {
-  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'bold', 'align', 'r'],
-  barcode: ['text', 'format', 'x', 'y', 'w', 'h', 'showText', 'size', 'r'],
-  qr: ['text', 'x', 'y', 'w', 'r'],
-  box: ['text', 'x', 'y', 'w', 'h', 'size', 'fit', 'r'],
+  text: ['text', 'x', 'y', 'w', 'size', 'fit', 'bold', 'align', 'r', 'mirror'],
+  barcode: ['text', 'format', 'x', 'y', 'w', 'h', 'showText', 'size', 'r', 'mirror'],
+  qr: ['text', 'x', 'y', 'w', 'r', 'mirror'],
+  box: ['text', 'x', 'y', 'w', 'h', 'size', 'fit', 'r', 'mirror'],
 };
-const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
+const LBL = { text: 'Nội dung', x: 'X (mm)', y: 'Y (mm)', w: 'Rộng (mm)', h: 'Cao (mm)', size: 'Cỡ chữ (pt)', mirror: 'Tự tạo bản đối xứng (xoay 180° quanh tâm tem)', fit: 'Tự thu nhỏ chữ cho lọt khung (tối đa còn 50%)',
   bold: 'In đậm', align: 'Căn lề', format: 'Chuẩn mã', showText: 'Hiện số dưới mã', r: 'Xoay (°)' };
 // Mẫu có sẵn — chọn trong "Mẫu tem" rồi bấm Mở, sau đó vẫn kéo thả chỉnh được
 const TEMPLATES = {
@@ -556,10 +560,11 @@ function renderLabel(row, edit) {
   }
   L.append(C);
   if (edit) C.append(Object.assign(document.createElement('div'), { className: 'safe', style: `inset:${S.safe}mm` }));
-  S.els.forEach((e, i) => {
+  // build: dựng 1 phần tử; mir = bản đối xứng (không chọn / kéo được)
+  const build = (e, i, mir) => {
     const v = fill(e.text, row);
     const n = document.createElement('div');
-    n.className = 'el' + (edit && i === sel ? ' sel' : '');
+    n.className = 'el' + (edit && !mir && i === sel ? ' sel' : '');
     Object.assign(n.style, { left: e.x + 'mm', top: e.y + 'mm', width: e.w + 'mm' });
     if (e.type === 'text') {
       n.textContent = v;
@@ -581,9 +586,16 @@ function renderLabel(row, edit) {
       }
     }
     if (e.r) n.style.transform = `rotate(${e.r}deg)`;
-    if (edit) n.onpointerdown = ev => drag(ev, i);
-    C.append(n);
-  });
+    if (edit && !mir) n.onpointerdown = ev => drag(ev, i);
+    return n;
+  };
+  S.els.forEach((e, i) => C.append(build(e, i)));
+  // Đối xứng: bản sao xoay 180° quanh tâm tem, tự theo phần tử gốc
+  if (S.els.some(e => e.mirror)) {
+    const M = document.createElement('div'); M.className = 'mir';
+    S.els.forEach((e, i) => { if (e.mirror) M.append(build(e, i, true)); });
+    C.append(M);
+  }
   return L;
 }
 
@@ -684,7 +696,7 @@ function drawProps() {
   const tl = document.createElement('label'); tl.append('Loại phần tử', ts); P.append(tl);
   for (const k of FIELDS[e.type]) {
     let inp;
-    if (k === 'bold' || k === 'showText' || k === 'fit') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
+    if (k === 'bold' || k === 'showText' || k === 'fit' || k === 'mirror') inp = Object.assign(document.createElement('input'), { type: 'checkbox', checked: k === 'fit' ? e.fit !== false : !!e[k] });
     else if (k === 'align' || k === 'format') {
       inp = document.createElement('select');
       (k === 'align' ? [['left', 'Trái'], ['center', 'Giữa'], ['right', 'Phải']] : FORMATS.map(f => [f, f]))
