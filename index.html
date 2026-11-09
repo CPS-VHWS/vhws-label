@@ -141,7 +141,7 @@
   #print { display: none; }
   @media print {
     body { background: none; }
-    .top, .app, .guide { display: none; }
+    .top, .app, .guide, #fitHost { display: none; }
     #print { display: block; }
     .pg { display: flex; overflow: hidden; break-after: page; }
   }
@@ -496,7 +496,7 @@ function fitSize(e, v) {
   const key = [e.type, v, e.size, e.bold, e.w, e.h, e.x, e.y, e.align, rr, dw, dh, S.safe].join('|');
   let res = fitCache.get(key);
   if (res) return res;
-  if (!fitHost) { fitHost = document.createElement('div'); fitHost.className = 'label'; fitHost.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;width:300mm;height:300mm'; document.body.append(fitHost); }
+  if (!fitHost) { fitHost = document.createElement('div'); fitHost.className = 'label'; fitHost.id = 'fitHost'; fitHost.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;width:300mm;height:300mm'; document.body.append(fitHost); }
   const m = document.createElement('div'); m.className = 'el'; m.textContent = v;
   const line = e.type === 'text';
   Object.assign(m.style, { left: 0, top: 0, width: e.w + 'mm' });
